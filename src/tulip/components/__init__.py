@@ -4,8 +4,8 @@ from functools import partial, wraps
 from typing import Callable, Literal, Never, Unpack, overload
 from collections.abc import Mapping, Sequence
 
-from src.tulip.components._types import Component, ComponentGen
-from tulip.components.utils import poll
+from tulip.components._types import NO_STYLE, Component, ComponentGen, Text, TextLike
+from tulip.components.utils import pollinput
 
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
@@ -62,11 +62,11 @@ type StandardCommandsMap[C, *A] = Mapping[str, Callable[[C, Unpack[A]], bool | N
 
 
 @component(stateless=True)
-def text(*values: str) -> ComponentGen[None]:
-    yield "".join(values)
+def text(*values: TextLike, style: str = NO_STYLE):
+    yield Text(*values, style=style)
 
 
-type Tabs[R] = Sequence[tuple[str, Component[R]]]
+type Tabs[R] = Sequence[tuple[str, Component[R] | Text]]
 
 
 @dataclass(slots=True)
@@ -105,24 +105,29 @@ def tabview[R](
     while True:
         tab_idx = controller.tab
         tab_page = tab_idx // tabs_per_page
-
-        yield text(" ", "<" if tab_page > 0 else " ")
-
-        for tab, _ in tabs[tab_page * tabs_per_page : tab_idx]:
-            yield text(" ", tab)
+        npages = len(tabs) // tabs_per_page
 
         tab_name, tab_comp = tabs[tab_idx]
-        yield text(" ", "[red]" + tab_name + "[/red]")
 
-        for tab, _ in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]:
-            yield text(" ", tab)
-
-        npages = len(tabs) // tabs_per_page
-        yield text(" >" if tab_page < npages else "", "\n\n")
-
+        yield Text(
+            " ",
+            Text("<" if tab_page > 0 else " ", style="tabview.arrow"),
+            *(
+                Text(" ", Text(tab, style="tabview.unselected"))
+                for tab, _ in tabs[tab_page * tabs_per_page : tab_idx]
+            ),
+            " ",
+            Text(tab_name, style="tabview.selected"),
+            *(
+                Text(" ", Text(tab, style="tabview.unselected"))
+                for tab, _ in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]
+            ),
+            Text(" >" if tab_page < npages else "", style="tabview.arrow"),
+            "\n",
+        )
         yield tab_comp
 
-        yield from poll(commands, controller, tabs)
+        yield from pollinput(commands, controller, tabs)
 
 
 @dataclass
@@ -154,6 +159,7 @@ def select(
     values: Sequence[str],
     *,
     separator: str = "\n",
+    cursor: str | Text | None = None,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
         SelectController, Sequence[str]
@@ -161,15 +167,22 @@ def select(
 ) -> ComponentGen[int]:
     controller = controller or SelectController(index=0)
 
+    if cursor is None:
+        cursor = "> "
+
+    if isinstance(cursor, str):
+        cursor = Text(cursor, style="select.selected")
+
+    indent = " " * len(cursor)
     while True:
-        for value in values[: controller.index]:
-            yield text("  ", value, separator)
+        yield Text.ass(
+            Text(indent, value, separator) for value in values[: controller.index]
+        )
+        yield Text(cursor, values[controller.index], separator)
+        yield Text.ass(
+            Text(indent, value, separator) for value in values[controller.index + 1 :]
+        )
 
-        yield text("> ", values[controller.index], separator)
-
-        for value in values[controller.index + 1 :]:
-            yield text("  ", value, separator)
-
-        done, _ = yield from poll(commands, controller, values)
+        done, _ = yield from pollinput(commands, controller, values)
         if done:
             return controller.index

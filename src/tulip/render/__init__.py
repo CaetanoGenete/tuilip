@@ -2,25 +2,25 @@ import inspect
 
 from typing import Callable, cast
 
-from tulip.components._types import CompNode, Component, Signal
+from tulip.components._types import CompNode, Component, Signal, Text
 
 
 def render[R](
-    *components: Component[R],
-    onrefresh: Callable[[list[str], list[CompNode[R]]], str],
+    *components: Component[R] | Text,
+    onrefresh: Callable[[list[Text], list[CompNode[R]]], str],
 ) -> R:
     nodes = list(map(CompNode, reversed(components)))
 
     key = ""
     while True:
-        screen: list[str] = []
+        screen: list[Text] = []
 
         stack = nodes.copy()
         while stack:
             curr = stack.pop()
             comp = curr.comp
 
-            if isinstance(comp, str):
+            if isinstance(comp, Text):
                 screen.append(comp)
                 continue
 
@@ -52,6 +52,10 @@ def render[R](
                     case None:
                         break
                     case _:
+                        # QOL: allow users to provide _raw_ strings.
+                        if isinstance(child, str):
+                            child = Text(child)
+
                         new_children.append(CompNode(child))
 
             comp.cache = curr

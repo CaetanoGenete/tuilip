@@ -12,9 +12,9 @@ dependencies = [
     "rich>=15.0.0",
 ]
 
-[project.scripts]
-tulip = "tulip:main"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+package = true
