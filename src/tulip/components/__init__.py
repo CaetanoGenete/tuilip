@@ -4,8 +4,15 @@ from functools import partial, wraps
 from typing import Callable, Literal, Never, Unpack, overload
 from collections.abc import Mapping, Sequence
 
-from tulip.components._types import NO_STYLE, Component, ComponentGen, Text, TextLike
-from tulip.components.utils import pollinput
+from tulip.components._types import (
+    NO_STYLE,
+    Component,
+    ComponentGen,
+    Signal,
+    Text,
+    TextLike,
+)
+from tulip.components.utils import pollinput, pollrefresh
 
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
@@ -17,6 +24,7 @@ def component[**P, R](
     fn: Literal[None] = ...,
     *,
     stateless: Literal[False],
+    debug_name: str = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]: ...
 
 
@@ -25,6 +33,7 @@ def component[**P, R](
     fn: Literal[None] = ...,
     *,
     stateless: Literal[True],
+    debug_name: str = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, Never]]: ...
 
 
@@ -33,6 +42,7 @@ def component[**P, R](
     fn: ComponentGenFactory[P, R],
     *,
     stateless: bool = ...,
+    debug_name: str = ...,
 ) -> ComponentFactory[P, R]: ...
 
 
@@ -40,18 +50,19 @@ def component[**P, R](
     fn: ComponentGenFactory[P, R] | None = None,
     *,
     stateless: bool = False,
+    debug_name: str = "",
 ) -> (
     ComponentFactory[P, R]
     | Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]
 ):
     if fn is None:
-        return partial(component, stateless=stateless)
+        return partial(component, stateless=stateless, debug_name=debug_name)
 
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component[R]:
         return Component(
             stateless=stateless,
-            debug_name=fn.__name__,
+            debug_name=debug_name or fn.__name__,
             gen=fn(*args, **kwargs),
         )
 
@@ -64,6 +75,37 @@ type StandardCommandsMap[C, *A] = Mapping[str, Callable[[C, Unpack[A]], bool | N
 @component(stateless=True)
 def text(*values: TextLike, style: str = NO_STYLE):
     yield Text(*values, style=style)
+
+
+NOPROP_DEBUG_NAME = "noprop"
+
+
+@component(stateless=True, debug_name=NOPROP_DEBUG_NAME)
+def _noprop_stateless[R](comp: Component[R]) -> ComponentGen[R]:
+    yield Signal.NOPROP
+    yield comp
+
+
+@component(stateless=False, debug_name=NOPROP_DEBUG_NAME)
+def _noprop_stateful[R](
+    comp: Component[R],
+    noprop: Callable[[], bool],
+) -> ComponentGen[R]:
+    while True:
+        if noprop():
+            yield Signal.NOPROP
+        yield comp
+        yield
+
+
+def noprop[R](comp: Component[R], noprop: bool | Callable[[], bool] = True):
+    if isinstance(noprop, bool):
+        if noprop:
+            return _noprop_stateless(comp)
+
+        return comp
+
+    return _noprop_stateful(comp, noprop)
 
 
 type Tabs[R] = Sequence[tuple[str, Component[R] | Text]]
@@ -102,6 +144,7 @@ def tabview[R](
 ) -> ComponentGen[R]:
     controller = controller or TabController(tab=0)
 
+    last_tab = controller.tab
     while True:
         tab_idx = controller.tab
         tab_page = tab_idx // tabs_per_page
@@ -125,9 +168,20 @@ def tabview[R](
             Text(" >" if tab_page < npages else "", style="tabview.arrow"),
             "\n",
         )
-        yield tab_comp
 
-        yield from pollinput(commands, controller, tabs)
+        if last_tab != tab_idx:
+            yield Signal.NOPROP
+
+        yield tab_comp
+        yield from pollinput(
+            commands,
+            lambda c, _: c.refresh or last_tab != tab_idx,
+            controller,
+            tabs,
+        )
+
+        controller.refresh = False
+        last_tab = tab_idx
 
 
 @dataclass
@@ -183,6 +237,6 @@ def select(
             Text(indent, value, separator) for value in values[controller.index + 1 :]
         )
 
-        done, _ = yield from pollinput(commands, controller, values)
+        done, _ = yield from pollrefresh(commands, controller, values)
         if done:
             return controller.index

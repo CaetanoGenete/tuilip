@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import IntEnum
 from itertools import chain
 from typing import Generic, Self, TypeVar, override
 from collections.abc import Generator, Iterable
@@ -7,8 +7,10 @@ from collections.abc import Generator, Iterable
 from tulip.string import rto
 
 
-class Signal(Enum):
-    NO_CHANGE = object()
+class Signal(IntEnum):
+    NOCHANGE = 1
+    NOPROP = 2
+    PROP = 3
 
 
 # Text
@@ -83,6 +85,7 @@ class Component(Generic[R_co]):
 @dataclass(slots=True)
 class CompNode[R]:
     comp: Component[R] | Text
+    propkey: bool = True
     children: list[Self] = field(default_factory=list)
 
     @override
@@ -103,10 +106,14 @@ class CompNode[R]:
                 result += f'"{rto(raw.replace("\n", r"\n").replace('"', r"\""))}"'
                 continue
 
-            elif comp.stateless:
-                result += f"({comp.debug_name})"
+            debug_name = f"{comp.debug_name}"
+            if not curr.propkey:
+                debug_name += " noprop"
+
+            if comp.stateless:
+                result += f"({debug_name})"
             else:
-                result += f"<{comp.debug_name}>"
+                result += f"<{debug_name}>"
 
             stack.extend((child, depth + 1) for child in reversed(curr.children))
 
