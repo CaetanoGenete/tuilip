@@ -12,10 +12,12 @@ from readchar import readchar
 
 DEFAULT_THEME = Theme(
     {
+		# tabview
         "tabview.selected": "red",
         "tabview.unselected": "blue",
         "tabview.arrow-enabled": "",
         "tabview.arrow-disabled": "dim",
+		# select
         "select.selected": "green",
     }
 )

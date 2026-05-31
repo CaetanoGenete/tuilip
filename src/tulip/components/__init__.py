@@ -78,7 +78,7 @@ def text(*values: TextLike, style: str = NO_STYLE):
 
 
 @component(stateless=True, debug_name="noprop")
-def _noprop_stateless[R](comp: Component[R]) -> ComponentGen[R]:
+def _noprop[R](comp: Component[R]) -> ComponentGen[R]:
     yield Signal.NOPROP
     yield comp
 
@@ -95,7 +95,7 @@ def noprop[R](comp: Component[R], noprop: bool = True):
         A component.
     """
     if noprop:
-        return _noprop_stateless(comp)
+        return _noprop(comp)
 
     return comp
 
@@ -239,6 +239,5 @@ def select(
             Text(indent, value, separator) for value in values[controller.index + 1 :]
         )
 
-        done, _ = yield from pollrefresh(commands, controller, values)
-        if done:
+        if (yield from pollrefresh(commands, controller, values)).done:
             return controller.index

@@ -1,6 +1,11 @@
-from typing import Callable, Concatenate, Protocol
+from typing import Callable, Concatenate, NamedTuple, Protocol
 from collections.abc import Generator, Mapping
 from tulip.components._types import Signal
+
+
+class PollResult(NamedTuple):
+    done: bool
+    key: str
 
 
 def pollinput[**P](
@@ -8,7 +13,7 @@ def pollinput[**P](
     poll: Callable[P, bool],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, str, tuple[bool, str]]:
+) -> Generator[Signal | None, str, PollResult]:
     """Component snippet for input polling.
 
     Polls until `poll` return `True` or truthy return from `commands`.
@@ -36,7 +41,7 @@ def pollinput[**P](
 
         key = yield Signal.NOCHANGE
 
-    return returned, key
+    return PollResult(returned, key)
 
 
 class RefreshableController(Protocol):
@@ -58,7 +63,7 @@ def pollrefresh[**P, C: RefreshableController](
     controller: C,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, str, tuple[bool, str]]:
+) -> Generator[Signal | None, str, PollResult]:
     """Component snippet for typical tulip polling.
 
     Polls for condition `controller.refresh = True` and truthy return from `commands`.
