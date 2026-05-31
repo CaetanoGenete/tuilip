@@ -77,35 +77,27 @@ def text(*values: TextLike, style: str = NO_STYLE):
     yield Text(*values, style=style)
 
 
-NOPROP_DEBUG_NAME = "noprop"
-
-
-@component(stateless=True, debug_name=NOPROP_DEBUG_NAME)
+@component(stateless=True, debug_name="noprop")
 def _noprop_stateless[R](comp: Component[R]) -> ComponentGen[R]:
     yield Signal.NOPROP
     yield comp
 
 
-@component(stateless=False, debug_name=NOPROP_DEBUG_NAME)
-def _noprop_stateful[R](
-    comp: Component[R],
-    noprop: Callable[[], bool],
-) -> ComponentGen[R]:
-    while True:
-        if noprop():
-            yield Signal.NOPROP
-        yield comp
-        yield
+def noprop[R](comp: Component[R], noprop: bool = True):
+    """Prevents 'key' from being passed down to components wrapped by this
+    function.
 
+    Args:
+        comp: A valid component
+        noprop: If `false`, this is a no-op.
 
-def noprop[R](comp: Component[R], noprop: bool | Callable[[], bool] = True):
-    if isinstance(noprop, bool):
-        if noprop:
-            return _noprop_stateless(comp)
+    Returns:
+        A component.
+    """
+    if noprop:
+        return _noprop_stateless(comp)
 
-        return comp
-
-    return _noprop_stateful(comp, noprop)
+    return comp
 
 
 type Tabs[R] = Sequence[tuple[str, Component[R] | Text]]
@@ -154,7 +146,12 @@ def tabview[R](
 
         yield Text(
             " ",
-            Text("<" if tab_page > 0 else " ", style="tabview.arrow"),
+            Text(
+                "<",
+                style="tabview.arrow-enabled"
+                if tab_page > 0
+                else "tabview.arrow-disabled",
+            ),
             *(
                 Text(" ", Text(tab, style="tabview.unselected"))
                 for tab, _ in tabs[tab_page * tabs_per_page : tab_idx]
@@ -165,7 +162,12 @@ def tabview[R](
                 Text(" ", Text(tab, style="tabview.unselected"))
                 for tab, _ in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]
             ),
-            Text(" >" if tab_page < npages else "", style="tabview.arrow"),
+            Text(
+                " >",
+                style="tabview.arrow-enabled"
+                if tab_page < npages
+                else "tabview.arrow-disabled",
+            ),
             "\n",
         )
 

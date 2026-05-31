@@ -1,5 +1,5 @@
 from tulip.components._types import Text
-from tulip.render.debug import loop
+from tulip.render.rich import loop
 from tulip.components import select
 from tulip.components import tabview
 
