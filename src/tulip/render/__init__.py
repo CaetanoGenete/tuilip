@@ -16,6 +16,7 @@ def render[R](
         screen: list[Text] = []
 
         noprop_idx = 1 << 31
+        indent_stack = [(0, 0)]
 
         stack = nodes.copy()
         while stack:
@@ -26,9 +27,17 @@ def render[R](
             if not curr.propkey:
                 noprop_idx = min(noprop_idx, stacklen)
 
+            indent_idx, indent = indent_stack[-1]
+            while stacklen < indent_idx:
+                _ = indent_stack.pop()
+                indent_idx, indent = indent_stack[-1]
+
             if isinstance(comp, Text):
-                screen.append(comp)
+                screen.append(comp.with_indent(comp.indent + indent))
                 continue
+
+            if comp.indent:
+                indent_stack.append((stacklen, comp.indent))
 
             created = inspect.getgeneratorstate(comp.gen) != "GEN_CREATED"
             if comp.stateless and created:

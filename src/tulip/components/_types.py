@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
-from itertools import chain
 from typing import Generic, Self, TypeVar, override
 from collections.abc import Generator, Iterable
 
@@ -30,39 +29,76 @@ type TextLike = Text | str
 
 
 class Text:
-    def __init__(self, *parts: TextLike, style: str = NO_STYLE) -> None:
-        self.set_spans(
-            span
-            for value in parts
-            for span in (
-                (Span(value, style),) if isinstance(value, str) else value._spans
-            )
-        )
+    __slots__: tuple[str, ...] = "_spans", "_len", "indent"
 
-    def set_spans(self, spans: Iterable[Span]) -> None:
-        self._spans: list[Span] = list(spans)
-        self._len: int = sum(len(span.value) for span in self._spans)
+    def __init__(
+        self,
+        *parts: TextLike,
+        style: str = NO_STYLE,
+        indent: int = 0,
+    ) -> None:
+        self._spans: list[Span] = []
+        self._len: int = 0
+        self.indent: int = indent
+
+        for value in parts:
+            self += value
+
+    def with_indent(self, indent: int) -> "Text":
+        """Returns a view of this text object, with the specified `indent`.
+
+        **IMPORTANT**: Non-indent modifications to this Text object will reflect in the
+        original.
+
+        Args:
+            indent: New indent value
+
+        Returns:
+            A view to this object.
+        """
+        result = Text(indent=indent)
+        result._spans = self._spans
+        return result
 
     def spans(self) -> list[Span]:
         return self._spans
 
     @classmethod
     def ass(cls, parts: "Iterable[Text]") -> "Text":
-        result = cls()
-        result.set_spans(span for part in parts for span in part._spans)
+        result = Text()
+        for value in parts:
+            result += value
+
+        return result
+
+    def __iadd__(self, other: "Text | str", /) -> Self:
+        if isinstance(other, Text):
+            self._spans.extend(
+                Span(
+                    value=span.value,
+                    style=span.style,
+                    indent=span.indent + other.indent - self.indent,
+                )
+                for span in other._spans
+            )
+        else:
+            self._spans.append(Span(other))
+            self._len += len(other)
+
+        return self
+
+    def __add__(self, other: "Text | str", /) -> "Text":
+        result = Text()
+
+        result._spans.extend(self._spans)
+        result._len = self._len
+        result.indent = self.indent
+
+        result += other
         return result
 
     def __len__(self) -> int:
         return self._len
-
-    def __add__(self, other: "Text | str", /) -> "Text":
-        result = Text()
-        result.set_spans(
-            chain(self._spans, other._spans)
-            if isinstance(other, Text)
-            else chain(self._spans, (Span(other),))
-        )
-        return result
 
 
 # Components
@@ -79,6 +115,7 @@ class Component(Generic[R_co]):
     stateless: bool
     debug_name: str
     gen: ComponentGen[R_co]
+    indent: int = 0
     cache: "CompNode[R_co] | None" = None
 
 
@@ -109,6 +146,9 @@ class CompNode[R]:
             debug_name = f"{comp.debug_name}"
             if not curr.propkey:
                 debug_name += " noprop"
+
+            if curr.comp.indent > 0:
+                debug_name += f" indent={curr.comp.indent}"
 
             if comp.stateless:
                 result += f"({debug_name})"

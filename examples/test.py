@@ -11,7 +11,7 @@ try:
             [
                 ("tab1", Text("tab1")),
                 ("tab2", Text("tab2")),
-                ("tab3", select([f"test - {i}" for i in range(10)])),
+                ("tab3", select([Text(f"test - {i}") for i in range(10)])),
                 ("tab4", Text("tab4")),
             ]
         ),

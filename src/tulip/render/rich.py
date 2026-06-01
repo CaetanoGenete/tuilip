@@ -12,12 +12,12 @@ from readchar import readchar
 
 DEFAULT_THEME = Theme(
     {
-		# tabview
+        # tabview
         "tabview.selected": "red",
         "tabview.unselected": "blue",
         "tabview.arrow-enabled": "",
         "tabview.arrow-disabled": "dim",
-		# select
+        # select
         "select.selected": "green",
     }
 )
@@ -32,7 +32,13 @@ def loop[R](*components: Component[R] | Text, console: Console | None = None) ->
         def onrefresh(screen: list[Text], _: list[CompNode[R]]) -> str:
             rendered = RichText.assemble(
                 *(
-                    RichText.from_markup(span.value, style=span.style, end="")
+                    RichText.from_markup(
+                        span.value.replace("\n", "\n" + (" " * eindent))
+                        if (eindent := text.indent + span.indent) > 0
+                        else span.value,
+                        style=span.style,
+                        end="",
+                    )
                     for text in screen
                     for span in text.spans()
                 ),

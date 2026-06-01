@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+from itertools import repeat
+from more_itertools import interleave, intersperse
 
 from functools import partial, wraps
 from typing import Callable, Literal, Never, Unpack, overload
@@ -25,6 +27,7 @@ def component[**P, R](
     *,
     stateless: Literal[False],
     debug_name: str = ...,
+    indent: int = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]: ...
 
 
@@ -34,6 +37,7 @@ def component[**P, R](
     *,
     stateless: Literal[True],
     debug_name: str = ...,
+    indent: int = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, Never]]: ...
 
 
@@ -43,6 +47,7 @@ def component[**P, R](
     *,
     stateless: bool = ...,
     debug_name: str = ...,
+    indent: int = ...,
 ) -> ComponentFactory[P, R]: ...
 
 
@@ -51,12 +56,18 @@ def component[**P, R](
     *,
     stateless: bool = False,
     debug_name: str = "",
+    indent: int = 0,
 ) -> (
     ComponentFactory[P, R]
     | Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]
 ):
     if fn is None:
-        return partial(component, stateless=stateless, debug_name=debug_name)
+        return partial(
+            component,
+            stateless=stateless,
+            debug_name=debug_name,
+            indent=indent,
+        )
 
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component[R]:
@@ -64,6 +75,7 @@ def component[**P, R](
             stateless=stateless,
             debug_name=debug_name or fn.__name__,
             gen=fn(*args, **kwargs),
+            indent=indent,
         )
 
     return wrapper
@@ -98,6 +110,23 @@ def noprop[R](comp: Component[R], noprop: bool = True):
         return _noprop(comp)
 
     return comp
+
+
+def padding[R](
+    *comps: Component[R] | TextLike,
+    indent: int,
+    start: bool = False,
+) -> Component[R]:
+
+    @component(stateless=True, debug_name="padding", indent=indent)
+    def result() -> ComponentGen[R | None]:
+        if comps and start:
+            yield " " * indent
+        for comp in comps:
+            yield comp
+        yield
+
+    return result()
 
 
 type Tabs[R] = Sequence[tuple[str, Component[R] | Text]]
@@ -211,16 +240,17 @@ DEFAULT_SELECT_COMMANDS = {
 
 
 @component
-def select(
-    values: Sequence[str],
+def select[R](
+    values: Sequence[Component[R] | TextLike],
     *,
-    separator: str = "\n",
-    cursor: str | Text | None = None,
+    separator: TextLike = "\n",
+    cursor: TextLike | None = None,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
-        SelectController, Sequence[str]
+        SelectController,
+        Sequence[Component[R] | TextLike],
     ] = DEFAULT_SELECT_COMMANDS,
-) -> ComponentGen[int]:
+) -> ComponentGen[R | int]:
     controller = controller or SelectController(index=0)
 
     if cursor is None:
@@ -229,14 +259,29 @@ def select(
     if isinstance(cursor, str):
         cursor = Text(cursor, style="select.selected")
 
-    indent = " " * len(cursor)
+    if isinstance(separator, str):
+        separator = Text(separator)
+
+    indent = len(cursor)
     while True:
-        yield Text.ass(
-            Text(indent, value, separator) for value in values[: controller.index]
+        yield padding(
+            *intersperse(
+                separator,
+                values[: controller.index],
+            ),
+            start=True,
+            indent=indent,
         )
-        yield Text(cursor, values[controller.index], separator)
-        yield Text.ass(
-            Text(indent, value, separator) for value in values[controller.index + 1 :]
+
+        yield Text("\n", cursor) if controller.index > 0 else cursor
+        yield values[controller.index]
+
+        yield padding(
+            *interleave(
+                repeat(separator),
+                values[controller.index + 1 :],
+            ),
+            indent=indent,
         )
 
         if (yield from pollrefresh(commands, controller, values)).done:
