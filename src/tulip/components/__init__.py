@@ -238,6 +238,8 @@ DEFAULT_SELECT_COMMANDS = {
     "s": SelectController.next,
     "\r": SelectController.select,
 }
+DEFAULT_ITEMS_PER_PAGE = 10
+SELECT_MAX_BULLETS = 10
 
 
 @component
@@ -246,12 +248,15 @@ def select[R](
     *,
     separator: TextLike = "\n",
     cursor: TextLike | None = None,
+    items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
         SelectController,
         Sequence[Renderable[R]]
     ] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
+    assert items_per_page > 0, "must be positive"
+
     controller = controller or SelectController(index=0)
 
     if cursor is None:
@@ -265,25 +270,42 @@ def select[R](
 
     indent = len(cursor)
     while True:
+        page, page_idx = divmod(controller.index, items_per_page)
+
         yield padding(
             *intersperse(
                 separator,
-                values[: controller.index],
+                values[page * items_per_page: controller.index],
             ),
             start=True,
             indent=indent,
         )
 
-        yield Text("\n", cursor) if controller.index > 0 else cursor
-        yield values[controller.index]
+        yield Text("\n", cursor) if page_idx > 0 else cursor
 
         yield padding(
+            values[controller.index],
             *interleave(
                 repeat(separator),
-                values[controller.index + 1 :],
+                values[controller.index + 1 : (page + 1) * items_per_page],
             ),
             indent=indent,
         )
+
+        if (nitems := len(values)) > items_per_page:
+            npages = (nitems + items_per_page - 1) // items_per_page
+
+            yield "\n\n" + " " * indent
+            if npages <= SELECT_MAX_BULLETS:
+                yield Text(
+                    ("○" * page) + "●" + ("○" * (npages - page - 1)),
+                    style="select.bullets",
+                )
+            else:
+                yield Text(
+                    f"[{page+1}|{npages}]",
+                    style="select.pager",
+                )
 
         if (yield from pollrefresh(commands, controller, values)).done:
             return controller.index

@@ -70,6 +70,14 @@ class Text:
 
         return result
 
+    def __radd__(self, other: str, /) -> "Text":
+        result = Text()
+
+        result += other
+        result += self
+
+        return result
+
     def spans(self) -> list[Span]:
         return self._spans
 
@@ -129,7 +137,7 @@ class CompNode[R]:
                 debug_name += f" indent={comp.indent}"
 
             if comp.stateless:
-                result += f"({debug_name})"
+                result += f"[{debug_name}]"
             else:
                 result += f"<{debug_name}>"
 

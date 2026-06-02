@@ -19,6 +19,8 @@ DEFAULT_THEME = Theme(
         "tabview.arrow-disabled": "dim",
         # select
         "select.selected": "green",
+        "select.bullets": "dim",
+        "select.pager": "dim",
     }
 )
 

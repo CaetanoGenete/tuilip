@@ -44,7 +44,7 @@ def render[R](
                 continue
 
             if comp.indent:
-                indent_stack.append((stacklen, comp.indent))
+                indent_stack.append((stacklen, indent + comp.indent))
 
             created = inspect.getgeneratorstate(comp.gen) != "GEN_CREATED"
             if comp.stateless and created:
@@ -106,6 +106,8 @@ def render[R](
                         continue
 
                     was_text = True
+                else:
+                    was_text = False
 
                 new_children.append(CompNode(child, propkey=propkey))
 
