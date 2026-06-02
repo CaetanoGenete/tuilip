@@ -1,10 +1,10 @@
 from functools import partial
-from tulip.components._types import CompNode, Text
-from tulip.render import render
+from tulip.components._types import CompNode
+from tulip.render import TextView, render
 from readchar import readchar
 
 
-def _onrefresh[R](_: list[Text], nodes: list[CompNode[R]]) -> str:
+def _onrefresh[R](_: list[TextView], nodes: list[CompNode[R]]) -> str:
     for node in reversed(nodes):
         print(node)
 

@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import Generic, Self, TypeVar, override
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 
 from tulip.string import rto
 
@@ -21,15 +21,15 @@ NO_STYLE = ""
 @dataclass(slots=True)
 class Span:
     value: str
-    style: str = NO_STYLE
-    indent: int = 0
+    style: str
+    indent: int
 
 
 type TextLike = Text | str
 
 
 class Text:
-    __slots__: tuple[str, ...] = "_spans", "_len", "indent"
+    __slots__: tuple[str, ...] = "_spans", "_len"
 
     def __init__(
         self,
@@ -39,52 +39,26 @@ class Text:
     ) -> None:
         self._spans: list[Span] = []
         self._len: int = 0
-        self.indent: int = indent
 
         for value in parts:
-            self += value
+            self.__append(value, style=style, indent=indent)
 
-    def with_indent(self, indent: int) -> "Text":
-        """Returns a view of this text object, with the specified `indent`.
+    def __append(
+        self,
+        other: TextLike,
+        *,
+        style: str = NO_STYLE,
+        indent: int = 0,
+    ) -> None:
+        if isinstance(other, Text):
+            self._spans.extend(other._spans)
+        else:
+            self._spans.append(Span(other, style=style, indent=indent))
 
-        **IMPORTANT**: Non-indent modifications to this Text object will reflect in the
-        original.
-
-        Args:
-            indent: New indent value
-
-        Returns:
-            A view to this object.
-        """
-        result = Text(indent=indent)
-        result._spans = self._spans
-        return result
-
-    def spans(self) -> list[Span]:
-        return self._spans
-
-    @classmethod
-    def ass(cls, parts: "Iterable[Text]") -> "Text":
-        result = Text()
-        for value in parts:
-            result += value
-
-        return result
+        self._len += len(other)
 
     def __iadd__(self, other: "Text | str", /) -> Self:
-        if isinstance(other, Text):
-            self._spans.extend(
-                Span(
-                    value=span.value,
-                    style=span.style,
-                    indent=span.indent + other.indent - self.indent,
-                )
-                for span in other._spans
-            )
-        else:
-            self._spans.append(Span(other))
-            self._len += len(other)
-
+        self.__append(other)
         return self
 
     def __add__(self, other: "Text | str", /) -> "Text":
@@ -92,10 +66,12 @@ class Text:
 
         result._spans.extend(self._spans)
         result._len = self._len
-        result.indent = self.indent
-
         result += other
+
         return result
+
+    def spans(self) -> list[Span]:
+        return self._spans
 
     def __len__(self) -> int:
         return self._len
@@ -106,6 +82,7 @@ class Text:
 
 type ComponentYieldT[R] = Component[R] | Signal | TextLike | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], str, R]
+
 
 R_co = TypeVar("R_co", covariant=True)
 
@@ -147,8 +124,8 @@ class CompNode[R]:
             if not curr.propkey:
                 debug_name += " noprop"
 
-            if curr.comp.indent > 0:
-                debug_name += f" indent={curr.comp.indent}"
+            if comp.indent > 0:
+                debug_name += f" indent={comp.indent}"
 
             if comp.stateless:
                 result += f"({debug_name})"

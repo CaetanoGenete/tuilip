@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import inspect
 
 from typing import Callable, cast
@@ -5,15 +6,21 @@ from typing import Callable, cast
 from tulip.components._types import CompNode, Component, Signal, Text
 
 
+@dataclass(slots=True)
+class TextView:
+    text: Text
+    indent: int
+
+
 def render[R](
     *components: Component[R] | Text,
-    onrefresh: Callable[[list[Text], list[CompNode[R]]], str],
+    onrefresh: Callable[[list[TextView], list[CompNode[R]]], str],
 ) -> R:
     nodes = list(map(CompNode, reversed(components)))
 
     key = ""
     while True:
-        screen: list[Text] = []
+        screen: list[TextView] = []
 
         noprop_idx = 1 << 31
         indent_stack = [(0, 0)]
@@ -33,7 +40,7 @@ def render[R](
                 indent_idx, indent = indent_stack[-1]
 
             if isinstance(comp, Text):
-                screen.append(comp.with_indent(comp.indent + indent))
+                screen.append(TextView(comp, indent))
                 continue
 
             if comp.indent:
