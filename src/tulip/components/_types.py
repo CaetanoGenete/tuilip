@@ -57,11 +57,11 @@ class Text:
 
         self._len += len(other)
 
-    def __iadd__(self, other: "Text | str", /) -> Self:
+    def __iadd__(self, other: TextLike, /) -> Self:
         self.__append(other)
         return self
 
-    def __add__(self, other: "Text | str", /) -> "Text":
+    def __add__(self, other: TextLike, /) -> "Text":
         result = Text()
 
         result._spans.extend(self._spans)
@@ -80,8 +80,9 @@ class Text:
 # Components
 
 
-type ComponentYieldT[R] = Component[R] | Signal | TextLike | None
-type ComponentGen[R] = Generator[ComponentYieldT[R], str, R]
+type Renderable[R] = Component[R] |  TextLike
+type _ComponentYieldT[R] = Renderable[R] | Signal | None
+type ComponentGen[R] = Generator[_ComponentYieldT[R], str, R]
 
 
 R_co = TypeVar("R_co", covariant=True)

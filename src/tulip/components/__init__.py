@@ -10,7 +10,7 @@ from tulip.components._types import (
     NO_STYLE,
     Component,
     ComponentGen,
-    ComponentYieldT,
+    Renderable,
     Signal,
     Text,
     TextLike,
@@ -114,7 +114,7 @@ def noprop[R](comp: Component[R], noprop: bool = True):
 
 
 def padding[R](
-    *comps: ComponentYieldT[R],
+    *comps: Renderable[R],
     indent: int,
     start: bool = False,
 ) -> Component[R]:
@@ -130,7 +130,7 @@ def padding[R](
     return result()
 
 
-type Tabs[R] = Sequence[tuple[str, ComponentYieldT[R]]]
+type Tabs[R] = Sequence[tuple[str, Renderable[R]]]
 
 
 @dataclass(slots=True)
@@ -242,14 +242,14 @@ DEFAULT_SELECT_COMMANDS = {
 
 @component
 def select[R](
-    values: Sequence[ComponentYieldT[R]],
+    values: Sequence[Renderable[R]],
     *,
     separator: TextLike = "\n",
     cursor: TextLike | None = None,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
         SelectController,
-        Sequence[ComponentYieldT[R]]
+        Sequence[Renderable[R]]
     ] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
     controller = controller or SelectController(index=0)
