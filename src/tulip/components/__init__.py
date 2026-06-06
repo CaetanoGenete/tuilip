@@ -7,7 +7,6 @@ from typing import Callable, Literal, Never, Unpack, overload
 from collections.abc import Mapping, Sequence
 
 from tulip.components._types import (
-    NO_STYLE,
     Component,
     ComponentGen,
     Renderable,
@@ -16,6 +15,7 @@ from tulip.components._types import (
     TextLike,
 )
 from tulip.components.utils import pollinput, pollrefresh
+from tulip.math import divup
 
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
@@ -85,11 +85,6 @@ def component[**P, R](
 type StandardCommandsMap[C, *A] = Mapping[str, Callable[[C, Unpack[A]], bool | None]]
 
 
-@component(stateless=True)
-def text(*values: TextLike, style: str = NO_STYLE):
-    yield Text(*values, style=style)
-
-
 @component(stateless=True, debug_name="noprop")
 def _noprop[R](comp: Component[R]) -> ComponentGen[R]:
     yield Signal.NOPROP
@@ -130,7 +125,7 @@ def padding[R](
     return result()
 
 
-type Tabs[R] = Sequence[tuple[str, Renderable[R]]]
+type Tabs[R] = Sequence[tuple[TextLike, Renderable[R]]]
 
 
 @dataclass(slots=True)
@@ -170,7 +165,7 @@ def tabview[R](
     while True:
         tab_idx = controller.tab
         tab_page = tab_idx // tabs_per_page
-        npages = len(tabs) // tabs_per_page
+        npages = divup(len(tabs), tabs_per_page)
 
         tab_name, tab_comp = tabs[tab_idx]
 
@@ -195,7 +190,7 @@ def tabview[R](
             Text(
                 " >",
                 style="tabview.arrow-enabled"
-                if tab_page < npages
+                if tab_page + 1 < npages
                 else "tabview.arrow-disabled",
             ),
             "\n",
@@ -251,8 +246,7 @@ def select[R](
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
-        SelectController,
-        Sequence[Renderable[R]]
+        SelectController, Sequence[Renderable[R]]
     ] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
     assert items_per_page > 0, "must be positive"
@@ -275,7 +269,7 @@ def select[R](
         yield padding(
             *intersperse(
                 separator,
-                values[page * items_per_page: controller.index],
+                values[page * items_per_page : controller.index],
             ),
             start=True,
             indent=indent,
@@ -303,7 +297,7 @@ def select[R](
                 )
             else:
                 yield Text(
-                    f"[{page+1}|{npages}]",
+                    f"[{page + 1}|{npages}]",
                     style="select.pager",
                 )
 

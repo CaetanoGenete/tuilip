@@ -1,9 +1,10 @@
 from dataclasses import dataclass, field
+from tulip.math import divup
 from enum import IntEnum
 from typing import Generic, Self, TypeVar, override
 from collections.abc import Generator
 
-from tulip.string import rto
+from tulip.text import rto
 
 
 class Signal(IntEnum):
@@ -13,7 +14,6 @@ class Signal(IntEnum):
 
 
 # Text
-
 
 NO_STYLE = ""
 
@@ -84,11 +84,40 @@ class Text:
     def __len__(self) -> int:
         return self._len
 
+    def __getitem__(self, index: "slice[int, int, int | None]") -> "Text":
+        result = Text()
+
+        start = index.start
+        stop = index.stop
+        step = abs(index.step or 1)
+
+        for span in self._spans:
+            if stop <= start:
+                break
+
+            spanlen = len(span.value)
+            if start < spanlen:
+                result._spans.append(
+                    Span(
+                        substr := span.value[start:stop:step],
+                        style=span.style,
+                        indent=span.indent,
+                    )
+                )
+                result._len += len(substr)
+
+                start += divup(spanlen - start, step) * step
+
+            stop -= spanlen
+            start -= spanlen
+
+        return result
+
 
 # Components
 
 
-type Renderable[R] = Component[R] |  TextLike
+type Renderable[R] = Component[R] | TextLike
 type _ComponentYieldT[R] = Renderable[R] | Signal | None
 type ComponentGen[R] = Generator[_ComponentYieldT[R], str, R]
 
