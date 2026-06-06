@@ -13,6 +13,19 @@ class Signal(IntEnum):
     PROP = 3
 
 
+def flip_slice(s: slice, seq_len: int) -> slice:
+    start, stop, step = s.indices(seq_len)
+
+    nsteps = divup(abs(stop - start), abs(step))
+    rstop = start - step
+
+    return slice(
+        start + (nsteps - 1) * step,
+        None if (step > 0 and rstop < 0) else rstop,
+        -step,
+    )
+
+
 # Text
 
 NO_STYLE = ""
@@ -79,17 +92,33 @@ class Text:
         return result
 
     def spans(self) -> list[Span]:
+        """Returns the underlying splan objects.
+
+        IMPORTANT: avoid mutating span lenghts as __len__ is cached!
+        """
         return self._spans
+
+    @override
+    def __str__(self) -> str:
+        return "".join(span.value for span in self._spans)
 
     def __len__(self) -> int:
         return self._len
 
-    def __getitem__(self, index: "slice[int, int, int | None]") -> "Text":
+    def __getitem__(self, ts: "slice[int | None, int | None, int | None]") -> "Text":
         result = Text()
 
-        start = index.start
-        stop = index.stop
-        step = abs(index.step or 1)
+        step = 1 if ts.step is None else ts.step
+        # Note: Handling reverse iteration by doing three flips:
+        # 1. Flip slip
+        # 2. Flip span texts
+        # 3. Flip result span order
+        if step < 0:
+            ts = flip_slice(ts, self._len)
+
+        absstep = abs(step)
+        start = 0 if ts.start is None else ts.start
+        stop = self._len if ts.stop is None else ts.stop
 
         for span in self._spans:
             if stop <= start:
@@ -97,19 +126,25 @@ class Text:
 
             spanlen = len(span.value)
             if start < spanlen:
+                ss = slice(start, stop, absstep)
                 result._spans.append(
                     Span(
-                        substr := span.value[start:stop:step],
+                        substr := span.value[
+                            ss if step > 0 else flip_slice(ss, spanlen)
+                        ],
                         style=span.style,
                         indent=span.indent,
                     )
                 )
                 result._len += len(substr)
 
-                start += divup(spanlen - start, step) * step
+                start += divup(spanlen - start, absstep) * absstep
 
             stop -= spanlen
             start -= spanlen
+
+        if step < 0:
+            result._spans.reverse()
 
         return result
 
