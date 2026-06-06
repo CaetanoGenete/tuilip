@@ -3,7 +3,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Self, override
 from tulip.math import divup
 
-from tulip.text import rto
+from tulip.string import rto
 
 if TYPE_CHECKING:
     from tulip.components.types import Component

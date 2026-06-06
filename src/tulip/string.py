@@ -8,13 +8,14 @@ class SStringType[S, T, R](Protocol):
 
 
 DEFAULT_OVERFLOW_LEN = 80
+DEFAULT_OVERFLOW_CHAR = "…"
 
 
 def rto[S, T: Sized, R](
     value: SStringType[S, T, R],
     olen: int = DEFAULT_OVERFLOW_LEN,
     *,
-    ochar: T = "...",
+    ochar: T = DEFAULT_OVERFLOW_CHAR,
     measure: Callable[[T | SStringType[S, T, R]], int] = len,
 ) -> S | R:
     """Truncates `value` to `olen` characters.
@@ -33,7 +34,9 @@ def rto[S, T: Sized, R](
 
     tlen = measure(value)
     if tlen > olen:
-        return cast(SStringType[S, T, R], value[: olen - measure(ochar)]) + ochar
+        return (
+            cast(SStringType[S, T, R], value[: max(0, olen - measure(ochar))]) + ochar
+        )
 
     return cast(S, value)
 
@@ -48,7 +51,7 @@ def lto[T: StringType[Any, Any], R](
     value: T,
     olen: int = DEFAULT_OVERFLOW_LEN,
     *,
-    ochar: StringType[T, R] = "...",
+    ochar: StringType[T, R] = DEFAULT_OVERFLOW_CHAR,
     measure: Callable[[T | StringType[T, R]], int] = len,
 ) -> T | R:
     """Truncates `value` to `olen` characters from the left.
@@ -67,6 +70,7 @@ def lto[T: StringType[Any, Any], R](
 
     tlen = measure(value)
     if tlen > olen:
-        return ochar + value[olen - measure(ochar) :]
+        start = measure(ochar) - olen
+        return ochar + value[start if start < 0 else tlen :]
 
     return value
