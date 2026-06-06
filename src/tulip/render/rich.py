@@ -6,7 +6,8 @@ except ImportError as e:
 
 from rich.console import Console
 from rich.theme import Theme
-from tulip.components._types import CompNode, Component, Text
+from tulip.components.types import Component
+from tulip.render.types import Text, CompNode
 from tulip.render import TextView, render
 from readchar import readchar
 

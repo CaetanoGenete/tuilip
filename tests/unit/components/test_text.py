@@ -1,7 +1,7 @@
 import pytest
 
 from dataclasses import dataclass
-from tulip.components._types import Span, Text
+from tulip.render.types import Span, Text
 
 
 @dataclass
@@ -115,7 +115,7 @@ class _TestCase:
             actual=Text("abc", style="s1") + Text("de", style="s2"),
             index=slice(0, 0, -1),
             spans=[],
-        )
+        ),
     ],
 )
 def test_slice(test_case: _TestCase) -> None:

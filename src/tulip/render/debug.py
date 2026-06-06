@@ -1,5 +1,5 @@
 from functools import partial
-from tulip.components._types import CompNode
+from tulip.render.types import CompNode
 from tulip.render import TextView, render
 from readchar import readchar
 

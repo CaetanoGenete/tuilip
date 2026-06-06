@@ -3,7 +3,7 @@ from typing import Literal, assert_type
 from rich.text import Text as RichText
 
 from tulip.text import lto, rto
-from tulip.components._types import Text
+from tulip.render.types import Text
 
 # str type checks
 

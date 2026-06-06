@@ -6,14 +6,12 @@ from functools import partial, wraps
 from typing import Callable, Literal, Never, Unpack, overload
 from collections.abc import Mapping, Sequence
 
-from tulip.components._types import (
+from tulip.components.types import (
     Component,
     ComponentGen,
     Renderable,
-    Signal,
-    Text,
-    TextLike,
 )
+from tulip.render.types import Signal, Text, TextLike
 from tulip.components.utils import pollinput, pollrefresh
 from tulip.math import divup
 
@@ -113,7 +111,6 @@ def padding[R](
     indent: int,
     start: bool = False,
 ) -> Component[R]:
-
     @component(stateless=True, debug_name="padding", indent=indent)
     def result() -> ComponentGen[R | None]:
         if comps and start:

@@ -22,5 +22,6 @@ package = true
 
 [dependency-groups]
 dev = [
+    "pyright>=1.1.410",
     "pytest>=9.0.3",
 ]

@@ -3,7 +3,8 @@ import inspect
 
 from typing import Callable, cast
 
-from tulip.components._types import CompNode, Component, Signal, Text
+from tulip.components.types import Component
+from tulip.render.types import CompNode, Signal, Text
 
 
 @dataclass(slots=True)

@@ -1,6 +1,6 @@
 from typing import Callable, Concatenate, NamedTuple, Protocol
 from collections.abc import Generator, Mapping
-from tulip.components._types import Signal
+from tulip.render.types import Signal
 
 
 class PollResult(NamedTuple):
