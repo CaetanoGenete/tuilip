@@ -1,7 +1,6 @@
-from tulip.render.types import Text
+from tulip.components import select, tabview, tabview_fixed
 from tulip.render.rich import loop
-from tulip.components import select, tabview_fixed
-from tulip.components import tabview
+from tulip.render.types import Text
 from tulip.string import Justify
 from tulip.views import LazySeq
 

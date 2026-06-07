@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Self, override
-from tulip.math import divup
 
+from tulip.math import divup
 from tulip.string import rto
 
 if TYPE_CHECKING:
@@ -51,7 +51,7 @@ def flip_slice(s: slice, seq_len: int) -> slice:
 
 
 class Text:
-    __slots__: tuple[str, ...] = "_spans", "_len"
+    __slots__: tuple[str, ...] = "_len", "_spans"
 
     def __init__(
         self,
@@ -106,10 +106,6 @@ class Text:
         IMPORTANT: avoid mutating span lenghts as __len__ is cached!
         """
         return self._spans
-
-    def clear(self) -> None:
-        self._spans.clear()
-        self._len = 0
 
     @override
     def __str__(self) -> str:

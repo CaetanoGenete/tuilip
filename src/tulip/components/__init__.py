@@ -1,22 +1,21 @@
-from dataclasses import dataclass
-from itertools import repeat
-from more_itertools import interleave, intersperse
-
-from functools import partial, wraps
-from typing import Callable, Literal, Never, Unpack, overload
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
+from functools import partial, wraps
+from itertools import repeat
+from typing import Callable, Literal, Never, Unpack, overload
+
+from more_itertools import interleave, intersperse
 
 from tulip.components.types import (
     Component,
     ComponentGen,
     Renderable,
 )
-from tulip.render.types import Signal, Text, TextLike
 from tulip.components.utils import pollinput, pollrefresh
 from tulip.math import divup
+from tulip.render.types import Signal, Text, TextLike
 from tulip.string import Justify, just
 from tulip.views import MapView, ShelfView
-
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
 type ComponentGenFactory[**P, R] = Callable[P, ComponentGen[R]]
@@ -24,7 +23,7 @@ type ComponentGenFactory[**P, R] = Callable[P, ComponentGen[R]]
 
 @overload
 def component[**P, R](
-    fn: Literal[None] = ...,
+    fn: None = ...,
     *,
     stateless: Literal[False],
     debug_name: str = ...,
@@ -34,7 +33,7 @@ def component[**P, R](
 
 @overload
 def component[**P, R](
-    fn: Literal[None] = ...,
+    fn: None = ...,
     *,
     stateless: Literal[True],
     debug_name: str = ...,
@@ -117,8 +116,10 @@ def padding[R](
     def result() -> ComponentGen[R | None]:
         if comps and start:
             yield " " * indent
+
         for comp in comps:
             yield comp
+
         yield
 
     return result()

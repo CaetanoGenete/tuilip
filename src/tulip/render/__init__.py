@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-import inspect
-from typing import Callable, cast
+from inspect import GEN_CREATED, getgeneratorstate
+from typing import cast
 
+from collections.abc import Callable
 from tulip.components.types import Component
 from tulip.render.exceptions import TooManyChildrenException
 from tulip.render.types import CompNode, Signal, Text
@@ -27,7 +28,8 @@ def render[R](
         screen: list[TextView] = []
 
         noprop_idx = 1 << 31
-        indent_stack = [(0, 0)]
+        # stores (indent, stack_ptr) flattened tuples.
+        indent_stack = [0, 0]
 
         stack = nodes.copy()
         while stack:
@@ -35,22 +37,22 @@ def render[R](
             comp = curr.comp
 
             stacklen = len(stack)
+
             if not curr.propkey:
                 noprop_idx = min(noprop_idx, stacklen)
 
-            indent_idx, indent = indent_stack[-1]
-            while stacklen < indent_idx:
-                _ = indent_stack.pop()
-                indent_idx, indent = indent_stack[-1]
+            while stacklen < indent_stack[-1]:
+                del indent_stack[-2:]
+            indent = indent_stack[-2]
 
             if isinstance(comp, Text):
                 screen.append(TextView(comp, indent))
                 continue
 
             if comp.indent:
-                indent_stack.append((stacklen, indent + comp.indent))
+                indent_stack.extend((indent + comp.indent, stacklen))
 
-            created = inspect.getgeneratorstate(comp.gen) != "GEN_CREATED"
+            created = getgeneratorstate(comp.gen) is not GEN_CREATED
             if comp.stateless and created:
                 assert comp.cache, "Component generator ran outside of loop!"
                 stack.extend(reversed(comp.cache.children))
@@ -63,6 +65,7 @@ def render[R](
                 noprop_idx = 1 << 31
 
             new_children: list[CompNode[R]] = []
+            # Cache of contiguous text nodes.
             cached_text = Text()
             # Whether child nodes should propogate 'key'
             propkey = True
@@ -84,7 +87,7 @@ def render[R](
                     case Signal.NOCHANGE:
                         assert comp.cache, "Component generator ran outside of loop!"
                         new_children = comp.cache.children
-                        cached_text.clear()
+                        cached_text = Text()
                         break
                     case Signal.PROP:
                         propkey = True

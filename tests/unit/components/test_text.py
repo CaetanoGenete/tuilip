@@ -1,6 +1,7 @@
+from dataclasses import dataclass
+
 import pytest
 
-from dataclasses import dataclass
 from tulip.render.types import Span, Text
 
 

@@ -1,15 +1,16 @@
 try:
-    from rich.text import Text as RichText
     from rich.live import Live
+    from rich.text import Text as RichText
 except ImportError as e:
     raise Exception("Cannot use Rich backend; rich is not installed!") from e
 
+from readchar import readchar
 from rich.console import Console
 from rich.theme import Theme
+
 from tulip.components.types import Component
-from tulip.render.types import Text
 from tulip.render import TextView, render
-from readchar import readchar
+from tulip.render.types import Text
 
 DEFAULT_THEME = Theme(
     {
@@ -36,7 +37,7 @@ def loop[R](*components: Component[R] | Text, console: Console | None = None) ->
             rendered = RichText.assemble(
                 *(
                     RichText.from_markup(
-                        span.value.replace("\n", "\n" + (" " * eindent))
+                        span.value.replace("\n", f"\n\x1b[{eindent}C")
                         if (eindent := view.indent + span.indent) > 0
                         else span.value,
                         style=span.style,

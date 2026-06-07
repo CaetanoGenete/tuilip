@@ -1,9 +1,10 @@
 from typing import Never
 
-from tulip.components.types import Component
-from tulip.render.types import CompNode, Text
-from tulip.render import TextView, render
 from readchar import readchar
+
+from tulip.components.types import Component
+from tulip.render import TextView, render
+from tulip.render.types import CompNode, Text
 
 
 def loop[R](*components: Component[R] | Text) -> R:

@@ -1,7 +1,7 @@
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from operator import itemgetter
-from typing import Any, Callable, no_type_check, overload, override, Literal
+from typing import Any, Callable, Literal, no_type_check, overload, override
 
 
 @dataclass(slots=True)

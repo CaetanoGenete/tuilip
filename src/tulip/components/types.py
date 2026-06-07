@@ -1,10 +1,9 @@
+from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
-from collections.abc import Generator
-
 
 if TYPE_CHECKING:
-    from tulip.render.types import CompNode, TextLike, Signal
+    from tulip.render.types import CompNode, Signal, TextLike
 
 
 type Renderable[R] = "Component[R] | TextLike"

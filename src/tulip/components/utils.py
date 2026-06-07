@@ -1,5 +1,6 @@
-from typing import Callable, Concatenate, NamedTuple, Protocol
 from collections.abc import Generator, Mapping
+from typing import Callable, Concatenate, NamedTuple, Protocol
+
 from tulip.render.types import Signal
 
 
