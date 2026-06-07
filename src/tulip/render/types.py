@@ -172,7 +172,7 @@ DEBUG_TRANS = str.maketrans({"\n": r"\n", '"': r"\""})
 class CompNode[R]:
     comp: "Component[R] | Text"
     propkey: bool = True
-    children: list[Self] = field(default_factory=list)
+    children: list[Self] = field(default_factory=list[Self])
 
     @override
     def __str__(self) -> str:
