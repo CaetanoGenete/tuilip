@@ -14,6 +14,8 @@ from tulip.components.types import (
 from tulip.render.types import Signal, Text, TextLike
 from tulip.components.utils import pollinput, pollrefresh
 from tulip.math import divup
+from tulip.string import Justify, just
+from tulip.views import MapView, ShelfView
 
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
@@ -142,31 +144,30 @@ class TabController:
 
 
 DEFAULT_TABS_PER_PAGE = 3
-DEFAULT_TABVIEW_COMMANDS = {
-    "a": TabController.prev,
-    "d": TabController.next,
-}
 
 
-@component
-def tabview[R](
-    tabs: Tabs[R],
-    *,
+type TabviewFormatter = Callable[[Sequence[TextLike], int], TextLike]
+
+
+def tabview_compact(
     tabs_per_page: int = DEFAULT_TABS_PER_PAGE,
-    controller: TabController | None = None,
-    commands: StandardCommandsMap[TabController, Tabs[R]] = DEFAULT_TABVIEW_COMMANDS,
-) -> ComponentGen[R]:
-    controller = controller or TabController(tab=0)
+    sep: TextLike = " ",
+) -> TabviewFormatter:
+    """Shows `tabs_per_page` tab titles, separated by spaces
 
-    last_tab = controller.tab
-    while True:
-        tab_idx = controller.tab
+    Args:
+        tabs_per_page: Number of tab titles to show per page.
+
+    Returns:
+        Tabview formatter function.
+    """
+
+    def _heading(tabs: Sequence[TextLike], tab_idx: int) -> Text:
+        tab_name = tabs[tab_idx]
         tab_page = tab_idx // tabs_per_page
         npages = divup(len(tabs), tabs_per_page)
 
-        tab_name, tab_comp = tabs[tab_idx]
-
-        yield Text(
+        return Text(
             " ",
             Text(
                 "<",
@@ -175,23 +176,117 @@ def tabview[R](
                 else "tabview.arrow-disabled",
             ),
             *(
-                Text(" ", Text(tab, style="tabview.unselected"))
-                for tab, _ in tabs[tab_page * tabs_per_page : tab_idx]
+                Text(sep, Text(tab, style="tabview.unselected"))
+                for tab in tabs[tab_page * tabs_per_page : tab_idx]
             ),
-            " ",
+            sep,
             Text(tab_name, style="tabview.selected"),
             *(
-                Text(" ", Text(tab, style="tabview.unselected"))
-                for tab, _ in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]
+                Text(sep, Text(tab, style="tabview.unselected"))
+                for tab in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]
             ),
+            sep,
             Text(
-                " >",
+                ">",
                 style="tabview.arrow-enabled"
                 if tab_page + 1 < npages
                 else "tabview.arrow-disabled",
             ),
             "\n",
         )
+
+    return _heading
+
+
+DEFAULT_TABVIEW_FIXED_WIDTH = 40
+
+
+def tabview_fixed(
+    width: int = DEFAULT_TABVIEW_FIXED_WIDTH,
+    *,
+    tabs_per_page: int = DEFAULT_TABS_PER_PAGE,
+    sep: TextLike = " ",
+    justify: Justify = Justify.LEFT,
+    fill: str = " ",
+) -> TabviewFormatter:
+    """Shows `tabs_per_page` tab titles, displayed in fixed width columns.
+
+    Args:
+        tabs_per_page: Number of tab titles to show per page.
+        width: Width per tab title.
+
+    Returns:
+        Tabview formatter function.
+    """
+
+    def _heading(tabs: Sequence[TextLike], tab_idx: int) -> Text:
+        tab_page = tab_idx // tabs_per_page
+        npages = divup(len(tabs), tabs_per_page)
+
+        tabs = MapView(
+            tabs,
+            lambda tab: just(tab, width, justify, lfill=fill, rfill=fill),
+        )
+        tab_name = tabs[tab_idx]
+
+        return Text(
+            " ",
+            Text(
+                "<",
+                style="tabview.arrow-enabled"
+                if tab_page > 0
+                else "tabview.arrow-disabled",
+            ),
+            *(
+                Text(sep, Text(tab, style="tabview.unselected"))
+                for tab in tabs[tab_page * tabs_per_page : tab_idx]
+            ),
+            sep,
+            Text(tab_name, style="tabview.selected"),
+            *(
+                Text(sep, Text(tab, style="tabview.unselected"))
+                for tab in tabs[tab_idx + 1 : (tab_page + 1) * tabs_per_page]
+            ),
+            *(
+                Text(sep, Text(fill * width, style="tabview.unselected"))
+                for _ in range(len(tabs), (tab_page + 1) * tabs_per_page)
+            ),
+            sep,
+            Text(
+                ">",
+                style="tabview.arrow-enabled"
+                if tab_page + 1 < npages
+                else "tabview.arrow-disabled",
+            ),
+            "\n",
+        )
+
+    return _heading
+
+
+DEFAULT_TABVIEW_COMMANDS = {
+    "a": TabController.prev,
+    "d": TabController.next,
+}
+DEFAULT_TABVIEW_HEADING = tabview_compact(3)
+
+
+@component
+def tabview[R](
+    tabs: Tabs[R],
+    *,
+    heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
+    controller: TabController | None = None,
+    commands: StandardCommandsMap[TabController, Tabs[R]] = DEFAULT_TABVIEW_COMMANDS,
+) -> ComponentGen[R]:
+    controller = controller or TabController(tab=0)
+
+    last_tab = controller.tab
+    while True:
+        tab_idx = controller.tab
+        _, tab_comp = tabs[tab_idx]
+
+        yield heading(ShelfView(tabs, 0), tab_idx)
 
         if last_tab != tab_idx:
             yield Signal.NOPROP
@@ -243,7 +338,8 @@ def select[R](
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
     commands: StandardCommandsMap[
-        SelectController, Sequence[Renderable[R]]
+        SelectController,
+        Sequence[Renderable[R]],
     ] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
     assert items_per_page > 0, "must be positive"
