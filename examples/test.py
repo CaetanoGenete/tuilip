@@ -3,6 +3,7 @@ from tulip.render.rich import loop
 from tulip.components import select, tabview_fixed
 from tulip.components import tabview
 from tulip.string import Justify
+from tulip.views import LazySeq
 
 try:
     inner_select = select(["a", "b", "c"])
@@ -13,7 +14,7 @@ try:
             [
                 ("tab1", Text("tab1")),
                 ("tab2", Text("tab2")),
-                ("tab3", select([f"item - {i}" for i in range(200)])),
+                ("tab3", select(LazySeq(200, lambda i: f"item - {i}"))),
                 ("tab4", Text("tab4")),
             ],
             heading=tabview_fixed(

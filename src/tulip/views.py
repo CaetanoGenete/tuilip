@@ -82,3 +82,8 @@ class ShelfView:
     @no_type_check
     def __new__(cls, seq: Any, index: int) -> Sequence[Any]:
         return MapView(seq, itemgetter(index))
+
+
+class LazySeq[T]:
+    def __new__(cls, length: int, mapfn: Callable[[int], T]) -> MapView[int, T]:
+        return MapView(range(length), mapfn)
