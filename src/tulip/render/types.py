@@ -29,7 +29,7 @@ type TextLike = Text | str
 
 
 def flip_slice(s: slice, seq_len: int) -> slice:
-    """Helper function, invers the iteration of a slice object.
+    """Helper function, inverts the iteration of a slice object.
 
     Args:
         s: The slice to invert
@@ -107,6 +107,10 @@ class Text:
         """
         return self._spans
 
+    def clear(self) -> None:
+        self._spans.clear()
+        self._len = 0
+
     @override
     def __str__(self) -> str:
         return "".join(span.value for span in self._spans)
@@ -114,12 +118,15 @@ class Text:
     def __len__(self) -> int:
         return self._len
 
+    def __bool__(self) -> bool:
+        return self._len > 0
+
     def __getitem__(self, ts: "slice[int | None, int | None, int | None]") -> "Text":
         result = Text()
 
         step = 1 if ts.step is None else ts.step
         # Note: Handling reverse iteration by doing three flips:
-        # 1. Flip slip
+        # 1. Flip slice
         # 2. Flip span texts
         # 3. Flip result span order
         if step < 0:

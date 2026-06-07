@@ -144,6 +144,7 @@ class TabController:
 
 
 DEFAULT_TABS_PER_PAGE = 3
+DEFAULT_TABVIEW_SEP = " "
 
 
 type TabviewFormatter = Callable[[Sequence[TextLike], int], TextLike]
@@ -151,7 +152,7 @@ type TabviewFormatter = Callable[[Sequence[TextLike], int], TextLike]
 
 def tabview_compact(
     tabs_per_page: int = DEFAULT_TABS_PER_PAGE,
-    sep: TextLike = " ",
+    sep: TextLike = DEFAULT_TABVIEW_SEP,
 ) -> TabviewFormatter:
     """Shows `tabs_per_page` tab titles, separated by spaces
 
@@ -204,9 +205,9 @@ def tabview_fixed(
     width: int = DEFAULT_TABVIEW_FIXED_WIDTH,
     *,
     tabs_per_page: int = DEFAULT_TABS_PER_PAGE,
-    sep: TextLike = " ",
+    sep: TextLike = DEFAULT_TABVIEW_SEP,
     justify: Justify = Justify.LEFT,
-    fill: str = " ",
+    fill: str = DEFAULT_TABVIEW_SEP,
 ) -> TabviewFormatter:
     """Shows `tabs_per_page` tab titles, displayed in fixed width columns.
 

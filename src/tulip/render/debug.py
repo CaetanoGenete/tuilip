@@ -1,22 +1,24 @@
-from functools import partial
-from tulip.render.types import CompNode
+from typing import Never
+
+from tulip.components.types import Component
+from tulip.render.types import CompNode, Text
 from tulip.render import TextView, render
 from readchar import readchar
 
 
-def _onrefresh[R](_: list[TextView], nodes: list[CompNode[R]]) -> str:
-    for node in reversed(nodes):
-        print(node)
+def loop[R](*components: Component[R] | Text) -> R:
+    def _onrefresh(_: list[TextView]) -> str:
+        for comp in reversed(components):
+            print(CompNode[Never](comp) if isinstance(comp, Text) else comp.cache)
 
-    print("---")
+        print("---")
 
-    key = readchar()
-    print("Key pressed: ", str(key.encode("charmap")))
-    print("---")
+        key = readchar()
+        print("Key pressed: ", str(key.encode("charmap")))
+        print("---")
 
-    if key == "\x03":
-        raise KeyboardInterrupt()
-    return key
+        if key == "\x03":
+            raise KeyboardInterrupt()
+        return key
 
-
-loop = partial(render, onrefresh=_onrefresh)
+    return render(*components, onrefresh=_onrefresh)

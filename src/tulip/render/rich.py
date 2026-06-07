@@ -7,7 +7,7 @@ except ImportError as e:
 from rich.console import Console
 from rich.theme import Theme
 from tulip.components.types import Component
-from tulip.render.types import Text, CompNode
+from tulip.render.types import Text
 from tulip.render import TextView, render
 from readchar import readchar
 
@@ -32,7 +32,7 @@ def loop[R](*components: Component[R] | Text, console: Console | None = None) ->
 
     with Live(console=console, auto_refresh=False, transient=False) as live:
 
-        def onrefresh(screen: list[TextView], _: list[CompNode[R]]) -> str:
+        def onrefresh(screen: list[TextView]) -> str:
             rendered = RichText.assemble(
                 *(
                     RichText.from_markup(
