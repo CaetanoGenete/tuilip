@@ -17,7 +17,10 @@ try:
                 ("tab4", Text("tab4")),
             ],
             heading=tabview_fixed(
-                30, sep="[dim]~[/dim]", fill="[dim]~[/dim]", justify=Justify.CENTER
+                width=30,
+                sep="[dim]~[/dim]",
+                fill="[dim]~[/dim]",
+                justify=Justify.CENTER,
             ),
         ),
     )

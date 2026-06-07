@@ -168,7 +168,6 @@ def tabview_compact(
         npages = divup(len(tabs), tabs_per_page)
 
         return Text(
-            " ",
             Text(
                 "<",
                 style="tabview.arrow-enabled"
@@ -230,7 +229,6 @@ def tabview_fixed(
         tab_name = tabs[tab_idx]
 
         return Text(
-            " ",
             Text(
                 "<",
                 style="tabview.arrow-enabled"
