@@ -46,7 +46,7 @@ def rto[S, T: Sized, R](
         measure: Optional measuring function for the length `value` and `ochar`.
 
     Returns:
-        A string no more than `olen` characters in length.
+        A string, at most `olen` characters in length.
     """
 
     tlen = measure(value)
@@ -76,7 +76,7 @@ def lto[T: StringType[Any, Any], R](
         measure: Optional measuring function for the length `value` and `ochar`.
 
     Returns:
-        A string no more than `olen` characters in length.
+        A string, at most `olen` characters in length.
     """
 
     tlen = measure(value)
@@ -92,27 +92,60 @@ class JustifyFiller[R](Protocol):
 
 
 def ljust[T, R](
-    value: StringType[T, R],
+    text: StringType[T, R],
     width: int,
     *,
     fill: JustifyFiller[T] = " ",
     measure: Callable[[StringType[T, R]], int] = len,
 ) -> R:
-    return value + fill * max(0, width - measure(value))
+    """Returns text padded to the right, such that its width equals `width`.
+
+    If `text` exceeds `width`, this is a no-op.
+
+    IMPORTANT: `fill` is NOT measured, and is instead assumed to be unitary in length.
+
+    Args:
+        text: The text to justify.
+        width: The target width.
+        fill: The character (or string) to fill empty space with.
+        measure: Optional measuring function for the length of `text`.
+
+    Returns:
+        A string, at least `width` in length.
+    """
+    return text + fill * max(0, width - measure(text))
 
 
 def cjust[T, L, R, U](
-    value: T,
+    text: T,
     width: int,
     *,
     lfill: JustifyFiller[StringType[T, StringType[R, U]]] = " ",
     rfill: JustifyFiller[R] = " ",
     measure: Callable[[T], int] = len,
 ) -> U:
-    cwidth = measure(value)
-    lwidth = max(0, (width - cwidth) // 2)
-    rwidth = max(0, width - cwidth - lwidth)
-    return (lfill * lwidth) + value + (rfill * rwidth)
+    """Returns text padded, such that its width equals `width` and is positioned
+    centrally.
+
+    If `text` exceeds `width`, this is a no-op.
+
+    IMPORTANT: `lfill` and `rfill` are NOT measured, and are instead assumed to be
+    unitary in length.
+
+    Args:
+        text: The text to justify.
+        width: The target width.
+        lfill: The character (or string) to fill empty space to the left.
+        rfill: The character (or string) to fill empty space to the right.
+        measure: Optional measuring function for the length of `text`.
+
+    Returns:
+        A string, at least `width` in length.
+    """
+    rem = width - measure(text)
+    lwidth = max(0, rem // 2)
+    rwidth = max(0, rem - lwidth)
+    return (lfill * lwidth) + text + (rfill * rwidth)
 
 
 def rjust[T, R](
@@ -122,6 +155,21 @@ def rjust[T, R](
     fill: JustifyFiller[StringType[T, R]] = " ",
     measure: Callable[[T], int] = len,
 ) -> R:
+    """Returns text padded to the left, such that its width equals `width`.
+
+    If `text` exceeds `width`, this is a no-op.
+
+    IMPORTANT: `fill` is NOT measured, and is instead assumed to be unitary in length.
+
+    Args:
+        text: The text to justify.
+        width: The target width.
+        fill: The character (or string) to fill empty space with.
+        measure: Optional measuring function for the length of `text`.
+
+    Returns:
+        A string, at least `width` in length.
+    """
     return (fill * max(0, width - measure(value))) + value
 
 
@@ -133,7 +181,7 @@ class Justify(IntEnum):
 
 @overload
 def just[T, R](
-    value: StringType[T, R],
+    text: StringType[T, R],
     width: int,
     mode: Literal[Justify.LEFT],
     *,
@@ -144,7 +192,7 @@ def just[T, R](
 
 @overload
 def just[T, L, R, U](
-    value: T,
+    text: T,
     width: int,
     mode: Literal[Justify.CENTER],
     *,
@@ -156,7 +204,7 @@ def just[T, L, R, U](
 
 @overload
 def just[T, R](
-    value: T,
+    text: T,
     width: int,
     mode: Literal[Justify.RIGHT],
     *,
@@ -167,7 +215,7 @@ def just[T, R](
 
 @overload
 def just[T, L, R, U](
-    value: T | StringType[T, R],
+    text: T | StringType[T, R],
     width: int,
     mode: Justify,
     *,
@@ -180,7 +228,7 @@ def just[T, L, R, U](
 
 @no_type_check
 def just(
-    value: Any,
+    text: Any,
     width: int,
     mode: Justify,
     *,
@@ -188,13 +236,23 @@ def just(
     rfill: Any = " ",
     measure: Callable[[Any], int] = len,
 ) -> Any:
-    """
-    Dispatches to the correct justification method based on the Justify enum.
+    """`ljust`, `cjust` and `rjust` selector function on `mode`.
+
+    Args:
+        text: The value to justify.
+        width: The minimum width of the resultant text.
+        mode: What direction to justify `text`.
+        lfill: The character (or string) to fill empty space on the left.
+        rfill: The character (or string) to fill empty space on the right.
+        measure: Optional measuring function for the length of `text`.
+
+    Returns:
+        A string, at least `width` in length.
     """
     match mode:
         case Justify.LEFT:
-            return ljust(value, width, fill=lfill, measure=measure)
+            return ljust(text, width, fill=lfill, measure=measure)
         case Justify.CENTER:
-            return cjust(value, width, lfill=lfill, rfill=rfill, measure=measure)
+            return cjust(text, width, lfill=lfill, rfill=rfill, measure=measure)
         case Justify.RIGHT:
-            return rjust(value, width, fill=rfill, measure=measure)
+            return rjust(text, width, fill=rfill, measure=measure)
