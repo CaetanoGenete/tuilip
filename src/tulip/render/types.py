@@ -191,7 +191,7 @@ class CompNode[R]:
             if not curr.propkey:
                 debug_name += " noprop"
 
-            if comp.indent > 0:
+            if comp.indent != 0:
                 debug_name += f" indent={comp.indent}"
 
             result += f"[{debug_name}]" if comp.stateless else f"<{debug_name}>"

@@ -1,8 +1,8 @@
-from tkinter import Text
 from types import GeneratorType
 from typing import Any
 
 from tulip.components.types import Component
+from tulip.render.types import Text
 
 
 class TooManyChildrenException(Exception):

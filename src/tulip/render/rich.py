@@ -34,21 +34,38 @@ def loop[R](*components: Component[R] | Text, console: Console | None = None) ->
     with Live(console=console, auto_refresh=False, transient=False) as live:
 
         def onrefresh(screen: list[TextView]) -> str:
-            rendered = RichText.assemble(
-                *(
-                    RichText.from_markup(
-                        span.value.replace("\n", f"\n\x1b[{eindent}C")
-                        if (eindent := view.indent + span.indent) > 0
-                        else span.value,
-                        style=span.style,
-                        end="",
+            result = RichText()
+
+            last_indent = 0
+            for view in screen:
+                view_indent = view.indent
+
+                for span in view.text.spans():
+                    indent = view_indent + span.indent
+                    parsed_str = span.value
+
+                    if indent > 0:
+                        if (diff := indent - last_indent) > 0:
+                            parsed_str = f"\x1b[{diff}C{parsed_str}"
+                        elif diff < 0:
+                            parsed_str = f"\x1b[{-diff}D{parsed_str}"
+
+                        last_char = parsed_str[-1]
+                        parsed_str = f"{parsed_str[:-1].replace('\n', f'\n\x1b[{indent}C')}{last_char}"
+
+                        if last_char == "\n":
+                            indent = 0
+
+                    last_indent = indent
+
+                    result.append(
+                        RichText.from_markup(
+                            parsed_str,
+                            style=span.style,
+                        ),
                     )
-                    for view in screen
-                    for span in view.text.spans()
-                ),
-                end="",
-            )
-            live.update(rendered, refresh=True)
+
+            live.update(result, refresh=True)
 
             key = readchar()
             if key == "\x03":

@@ -1,10 +1,7 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial, wraps
-from itertools import repeat
-from typing import Callable, Literal, Never, Unpack, overload
-
-from more_itertools import interleave, intersperse
+from typing import Callable, Iterable, Literal, Never, Unpack, overload
 
 from tulip.components.types import (
     Component,
@@ -107,20 +104,34 @@ def noprop[R](comp: Component[R], noprop: bool = True):
     return comp
 
 
-def padding[R](
-    *comps: Renderable[R],
+@overload
+def padding(
+    comp: str | Text,
     indent: int,
-    start: bool = False,
-) -> Component[R]:
-    @component(stateless=True, debug_name="padding", indent=indent)
+) -> Component[Never]: ...
+
+
+@overload
+def padding[R](
+    comp: Component[R],
+    indent: int,
+) -> Component[R]: ...
+
+
+def padding[R](
+    comp: Renderable[R],
+    indent: int,
+) -> Renderable[R]:
+    if indent == 0:
+        return comp
+
+    @component(
+        stateless=True,
+        debug_name="padding",
+        indent=indent,
+    )
     def result() -> ComponentGen[R | None]:
-        if comps and start:
-            yield " " * indent
-
-        for comp in comps:
-            yield comp
-
-        yield
+        yield comp
 
     return result()
 
@@ -284,14 +295,14 @@ def tabview[R](
     last_tab = controller.tab
     while True:
         tab_idx = controller.tab
-        _, tab_comp = tabs[tab_idx]
 
         yield heading(ShelfView(tabs, 0), tab_idx)
 
         if last_tab != tab_idx:
             yield Signal.NOPROP
 
-        yield tab_comp
+        yield tabs[tab_idx][1]
+
         yield from pollinput(
             commands,
             lambda c, _: c.refresh or last_tab != tab_idx,
@@ -301,6 +312,34 @@ def tabview[R](
 
         controller.refresh = False
         last_tab = tab_idx
+
+
+@component(stateless=True)
+def seq[R](
+    comps: Iterable[Renderable[R]],
+    separator: Renderable[R] = "",
+) -> ComponentGen[R | None]:
+    if not separator:
+        for value in comps:
+            yield value
+        return
+
+    it = iter(comps)
+    try:
+        yield next(it)
+    except StopIteration:
+        return
+
+    for value in it:
+        yield separator
+        yield value
+
+
+def seqn[R](
+    *comps: Renderable[R],
+    separator: Renderable[R] = "",
+) -> Component[R]:
+    return seq(comps, separator=separator)
 
 
 @dataclass
@@ -356,25 +395,22 @@ def select[R](
         separator = Text(separator)
 
     indent = len(cursor)
+    cursorcomp = padding(
+        # TODO: This is currently a little bit of a hack... make possible with engine.
+        Text(cursor, f"\x1b[{indent}D"),
+        indent=-indent,
+    )
+
     while True:
-        page, page_idx = divmod(controller.index, items_per_page)
+        idx = controller.index
+        page = idx // items_per_page
 
         yield padding(
-            *intersperse(
-                separator,
-                values[page * items_per_page : controller.index],
-            ),
-            start=True,
-            indent=indent,
-        )
-
-        yield Text("\n", cursor) if page_idx > 0 else cursor
-
-        yield padding(
-            values[controller.index],
-            *interleave(
-                repeat(separator),
-                values[controller.index + 1 : (page + 1) * items_per_page],
+            seqn(
+                *values[page * items_per_page : idx],
+                seqn(cursorcomp, values[idx]),
+                *values[idx + 1 : (page + 1) * items_per_page],
+                separator=separator,
             ),
             indent=indent,
         )
@@ -382,17 +418,19 @@ def select[R](
         if (nitems := len(values)) > items_per_page:
             npages = (nitems + items_per_page - 1) // items_per_page
 
-            yield "\n\n" + " " * indent
-            if npages <= SELECT_MAX_BULLETS:
-                yield Text(
+            yield "\n\n"
+            yield padding(
+                Text(
                     ("○" * page) + "●" + ("○" * (npages - page - 1)),
                     style="select.bullets",
                 )
-            else:
-                yield Text(
+                if npages <= SELECT_MAX_BULLETS
+                else Text(
                     f"[{page + 1}|{npages}]",
                     style="select.pager",
-                )
+                ),
+                indent=2,
+            )
 
         if (yield from pollrefresh(commands, controller, values)).done:
             return controller.index
