@@ -2,24 +2,36 @@
 	uv sync
 
 .PHONY: type-check
-type-check: .venv
+develop: .venv
+
+.PHONY: type-check
+type-check: develop
 	uv run pyright .
 
 .PHONY: lint
-lint: .venv
+lint: develop
 	uv run ruff check .
 
 .PHONY: format-check
-format-check: .venv
+format-check: develop
 	uv run ruff format --check .
 
 .PHONY: format
-format: .venv
+format: develop
 	uv run ruff format .
 
 .PHONY: test
-test: .venv
+test: develop
 	uv run pytest
 
 .PHONY: check
 check: format-check lint type-check test
+
+.PHONY: dev-container
+dev-container:
+	docker build -t tulip .
+	docker run --rm -it tulip
+
+.PHONY: clean
+clean:
+	git clean -dXf

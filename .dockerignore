@@ -1,0 +1,21 @@
+*
+
+!/src
+!/tests/
+!/examples/
+
+!/.editorconfig
+!/.gitattributes
+!/.gitignore
+!/uv.lock
+!/CHANGELOG.md
+!/CMakeLists.txt
+!/pyproject.toml
+!/LICENSE
+!/README.md
+!/Makefile
+
+# python
+__pycache__
+.venv*
+*.egg-info

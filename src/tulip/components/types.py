@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
 type Renderable[R] = "Component[R] | TextLike"
 type _ComponentYieldT[R] = "Renderable[R] | Signal | None"
-type ComponentGen[R] = Generator[_ComponentYieldT[R], str, R]
+type ComponentGen[R] = Generator[_ComponentYieldT[R], int, R]
 
 
 R_co = TypeVar("R_co", covariant=True)

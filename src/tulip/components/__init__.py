@@ -1,7 +1,7 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Callable, Iterable, Literal, Never, Unpack, overload
+from typing import Any, Callable, Iterable, Literal, Never, Unpack, overload
 
 from tulip.components.types import (
     Component,
@@ -9,6 +9,7 @@ from tulip.components.types import (
     Renderable,
 )
 from tulip.components.utils import pollinput, pollrefresh
+from tulip.input.keys import Key
 from tulip.math import divup
 from tulip.render.types import Signal, Text, TextLike
 from tulip.string import Justify, just
@@ -78,7 +79,9 @@ def component[**P, R](
     return wrapper
 
 
-type StandardCommandsMap[C, *A] = Mapping[str, Callable[[C, Unpack[A]], bool | None]]
+type StandardCommandsMap[C, *A] = Mapping[
+    int | Key, Callable[[C, Unpack[A]], bool | None]
+]
 
 
 @component(stateless=True, debug_name="noprop")
@@ -275,9 +278,9 @@ def tabview_fixed(
     return _heading
 
 
-DEFAULT_TABVIEW_COMMANDS = {
-    "a": TabController.prev,
-    "d": TabController.next,
+DEFAULT_TABVIEW_COMMANDS: dict[int, Any] = {
+    Key.LEFT: TabController.prev,
+    Key.RIGHT: TabController.next,
 }
 DEFAULT_TABVIEW_HEADING = tabview_compact(3)
 
@@ -359,10 +362,10 @@ class SelectController:
         return True
 
 
-DEFAULT_SELECT_COMMANDS = {
-    "w": SelectController.prev,
-    "s": SelectController.next,
-    "\r": SelectController.select,
+DEFAULT_SELECT_COMMANDS: dict[int, Any] = {
+    Key.UP: SelectController.prev,
+    Key.DOWN: SelectController.next,
+    Key.CR: SelectController.select,
 }
 DEFAULT_ITEMS_PER_PAGE = 10
 SELECT_MAX_BULLETS = 10

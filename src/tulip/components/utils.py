@@ -6,15 +6,15 @@ from tulip.render.types import Signal
 
 class PollResult(NamedTuple):
     done: bool
-    key: str
+    key: int
 
 
 def pollinput[**P](
-    commands: Mapping[str, Callable[P, bool | None]],
+    commands: Mapping[int, Callable[P, bool | None]],
     poll: Callable[P, bool],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, str, PollResult]:
+) -> Generator[Signal | None, int, PollResult]:
     """Component snippet for input polling.
 
     Polls until `poll` return `True` or truthy return from `commands`.
@@ -60,11 +60,11 @@ def _pollrefresh[**P](
 
 
 def pollrefresh[**P, C: RefreshableController](
-    commands: Mapping[str, Callable[Concatenate[C, P], bool | None]],
+    commands: Mapping[int, Callable[Concatenate[C, P], bool | None]],
     controller: C,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, str, PollResult]:
+) -> Generator[Signal | None, int, PollResult]:
     """Component snippet for typical tulip polling.
 
     Polls for condition `controller.refresh = True` and truthy return from `commands`.

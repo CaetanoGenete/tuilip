@@ -6,6 +6,13 @@ from typing import Any, Callable, Literal, no_type_check, overload, override
 
 @dataclass(slots=True)
 class MapView[T, R](Sequence[R]):
+    """Applies `mapfn` to every item in `seq` on-demand.
+
+    Attributes:
+        seq: The underlying Sequence object.
+        mapfn: Mapping function.
+    """
+
     seq: Sequence[T]
     mapfn: Callable[[T], R]
 

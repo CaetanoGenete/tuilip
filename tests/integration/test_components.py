@@ -19,7 +19,7 @@ def test_infinite_component_errors() -> None:
     with pytest.raises(TooManyChildrenException) as e:
         render(
             bad_comp,
-            onrefresh=lambda x: "",
+            onrefresh=lambda x: 0,
         )
 
     assert e.value.comp == bad_comp

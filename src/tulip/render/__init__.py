@@ -19,11 +19,11 @@ MAX_COMPONENT_CHILDREN = 1000
 
 def render[R](
     *components: Component[R] | Text,
-    onrefresh: Callable[[list[TextView]], str],
+    onrefresh: Callable[[list[TextView]], int],
 ) -> R:
     nodes = list(map(CompNode, reversed(components)))
 
-    key = ""
+    key = 0
     while True:
         screen: list[TextView] = []
 
@@ -59,7 +59,7 @@ def render[R](
                 continue
 
             if stacklen >= noprop_idx:
-                effective_key = ""
+                effective_key = 0
             else:
                 effective_key = key
                 noprop_idx = 1 << 31
