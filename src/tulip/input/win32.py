@@ -11,7 +11,7 @@ class Win32InputHandler(InputHandler):
     def read(self) -> int:
         ch = msvcrt.getch()
 
-        # parse special multi character keys
+        # Parse special multi character keys
         # https://learn.microsoft.com/cpp/c-runtime-library/reference/getch-getwch#remarks
         if ch in b"\x00\xe0":
             match msvcrt.getch()[0]:
@@ -32,9 +32,25 @@ class Win32InputHandler(InputHandler):
                 case 81:
                     return Key.PAGE_DOWN
                 case 83:
-                    return Key.DEL
+                    return Key.SDEL
+                case 115:
+                    return Key.CTRL_LEFT
+                case 116:
+                    return Key.CTRL_RIGHT
+                case 141:
+                    return Key.CTRL_UP
+                case 145:
+                    return Key.CTRL_DOWN
                 case _:
                     return 0
+
+        # Weird discrepency between Windows and Unix, backspace and del are swapped...
+        # Choosing Unix standard:
+        if ch == b"\x08":
+            return Key.DEL
+
+        if ch == b"\x7f":
+            return Key.BACKSPACE
 
         return int.from_bytes(ch)
 

@@ -24,6 +24,8 @@ DEFAULT_THEME = Theme(
         "select.selected": "green",
         "select.bullets": "dim",
         "select.pager": "dim",
+        # Prompt:
+        "prompt.cursor": "black on white",
     }
 )
 

@@ -69,11 +69,21 @@ ESCAPE_CODES = {
     b"[F": Key.END,
     b"[H": Key.HOME,
     b"[1~": Key.HOME,
-    b"[3~": Key.DEL,
+    b"[3~": Key.SDEL,
     b"[4~": Key.END,
     b"[5~": Key.PAGE_UP,
     b"[6~": Key.PAGE_DOWN,
     b"[7~": Key.END,
+    # Meta (alt) + arrow keys
+    b"[1;3A": Key.META_UP,
+    b"[1;3B": Key.META_DOWN,
+    b"[1;3C": Key.META_RIGHT,
+    b"[1;3D": Key.META_LEFT,
+    # ctrl + arrow keys
+    b"[1;5A": Key.CTRL_UP,
+    b"[1;5B": Key.CTRL_DOWN,
+    b"[1;5C": Key.CTRL_RIGHT,
+    b"[1;5D": Key.CTRL_LEFT,
     # SS3
     b"OA": Key.UP,
     b"OB": Key.DOWN,

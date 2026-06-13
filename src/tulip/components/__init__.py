@@ -59,6 +59,17 @@ def component[**P, R](
     ComponentFactory[P, R]
     | Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]
 ):
+    """Converts a generator into a tulip Component.
+
+    Args:
+        fn: The build function
+        stateless: If true, component is only built once.
+        debug_name: The name of the component as it appears in logs and error messages. Defaults to the function name.
+        indent: Offsets (to the right) the component by `indent`.
+
+    Returns:
+        A Tuilip component.
+    """
     if fn is None:
         return partial(
             component,
@@ -79,9 +90,7 @@ def component[**P, R](
     return wrapper
 
 
-type StandardCommandsMap[C, *A] = Mapping[
-    int | Key, Callable[[C, Unpack[A]], bool | None]
-]
+type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | None]]
 
 
 @component(stateless=True, debug_name="noprop")
@@ -152,7 +161,7 @@ class TabController:
             self.tab += 1
             self.refresh = True
 
-    def prev[R](self, _: Tabs[R]) -> None:
+    def prev[R](self) -> None:
         if self.tab > 0:
             self.tab -= 1
             self.refresh = True
@@ -278,8 +287,11 @@ def tabview_fixed(
     return _heading
 
 
-DEFAULT_TABVIEW_COMMANDS: dict[int, Any] = {
-    Key.LEFT: TabController.prev,
+type TabviewCommandsMap[R] = StdCommandsMap[TabController, Tabs[R]]
+
+
+DEFAULT_TABVIEW_COMMANDS: TabviewCommandsMap[Any] = {
+    Key.LEFT: lambda c, _: c.prev(),
     Key.RIGHT: TabController.next,
 }
 DEFAULT_TABVIEW_HEADING = tabview_compact(3)
@@ -291,7 +303,7 @@ def tabview[R](
     *,
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
-    commands: StandardCommandsMap[TabController, Tabs[R]] = DEFAULT_TABVIEW_COMMANDS,
+    commands: TabviewCommandsMap[R] = DEFAULT_TABVIEW_COMMANDS,
 ) -> ComponentGen[R]:
     controller = controller or TabController(tab=0)
 
@@ -350,22 +362,38 @@ class SelectController:
     index: int
     refresh: bool = False
 
-    def next[R](self, items: Sequence[R]) -> None:
+    def next(self, items: Sequence[Any]) -> None:
         self.index = (self.index + 1) % len(items)
         self.refresh = True
 
-    def prev[R](self, items: Sequence[R]) -> None:
+    def prev(self, items: Sequence[Any]) -> None:
         self.index = (self.index - 1) % len(items)
         self.refresh = True
 
-    def select[R](self, _: Sequence[R]) -> bool:
+    def first(self) -> None:
+        if self.index != 0:
+            self.index = 0
+            self.refresh = True
+
+    def last(self, items: Sequence[Any]) -> None:
+        lasti = max(0, len(items) - 1)
+        if self.index != lasti:
+            self.index = lasti
+            self.refresh = True
+
+    def select(self) -> bool:
         return True
 
 
-DEFAULT_SELECT_COMMANDS: dict[int, Any] = {
+type SelectCommandsMap[R] = StdCommandsMap[SelectController, Sequence[Renderable[R]]]
+
+
+DEFAULT_SELECT_COMMANDS: dict[int, Callable[[SelectController, Any], Any]] = {
     Key.UP: SelectController.prev,
     Key.DOWN: SelectController.next,
-    Key.CR: SelectController.select,
+    Key.G_LOWER: lambda c, _: c.first(),
+    Key.G: SelectController.last,
+    Key.CR: lambda c, _: c.select(),
 }
 DEFAULT_ITEMS_PER_PAGE = 10
 SELECT_MAX_BULLETS = 10
@@ -379,10 +407,7 @@ def select[R](
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
-    commands: StandardCommandsMap[
-        SelectController,
-        Sequence[Renderable[R]],
-    ] = DEFAULT_SELECT_COMMANDS,
+    commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
     assert items_per_page > 0, "must be positive"
 
@@ -437,3 +462,95 @@ def select[R](
 
         if (yield from pollrefresh(commands, controller, values)).done:
             return controller.index
+
+
+@dataclass
+class PromptController:
+    prompt: str = ""
+    cursor: int = 0
+
+    def prevchar(self) -> None:
+        self.cursor = max(0, self.cursor - 1)
+
+    def nextchar(self) -> None:
+        self.cursor = min(len(self.prompt), self.cursor + 1)
+
+    def prevword(self) -> None:
+        self.cursor = self.prompt.rfind(" ", 0, max(0, self.cursor - 1)) + 1
+
+    def nextword(self) -> None:
+        wstart = self.prompt.find(" ", self.cursor)
+        if wstart == -1:
+            wstart = len(self.prompt)
+
+        self.cursor = wstart + 1
+
+    def delchar(self) -> None:
+        self.prompt = self.prompt[: self.cursor - 1] + self.prompt[self.cursor :]
+        self.prevchar()
+
+    def delword(self) -> None:
+        wstart = self.prompt.rfind(" ", 0, max(0, self.cursor - 1)) + 1
+
+        self.prompt = self.prompt[:wstart] + self.prompt[self.cursor :]
+        self.cursor = wstart
+
+    def insert(self, key: int) -> None:
+        # For now, only support printable ascii range
+        if 32 <= key <= 126:
+            self.prompt = (
+                self.prompt[: self.cursor] + chr(key) + self.prompt[self.cursor :]
+            )
+            self.nextchar()
+
+    def select(self) -> bool:
+        return True
+
+
+type PromptCommandsMap = StdCommandsMap[PromptController]
+
+
+DEFAULT_PROMPT_COMMANDS: PromptCommandsMap = {
+    Key.DEL: PromptController.delchar,
+    Key.BACKSPACE: PromptController.delword,
+    Key.LF: PromptController.select,
+    Key.CR: PromptController.select,
+    Key.LEFT: PromptController.prevchar,
+    Key.RIGHT: PromptController.nextchar,
+    Key.CTRL_LEFT: PromptController.prevword,
+    Key.CTRL_RIGHT: PromptController.nextword,
+}
+
+
+@component
+def prompt(
+    *,
+    controller: PromptController | None = None,
+    commands: PromptCommandsMap = DEFAULT_PROMPT_COMMANDS,
+) -> ComponentGen[str]:
+    controller = controller or PromptController()
+
+    while True:
+        yield Text(
+            controller.prompt[: controller.cursor],
+            Text(
+                controller.prompt[controller.cursor]
+                if controller.cursor < len(controller.prompt)
+                else " ",
+                style="prompt.cursor",
+            ),
+            controller.prompt[controller.cursor + 1 :],
+        )
+
+        if (key := (yield)) in commands:
+            if commands[key](controller):
+                return controller.prompt
+        else:
+            controller.insert(key)
+
+
+@component
+def echo_key() -> ComponentGen[Never]:
+    yield "Key: "
+    while True:
+        yield f"Key: {(yield)}"

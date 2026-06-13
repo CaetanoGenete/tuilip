@@ -36,3 +36,7 @@ exclude = [
     "src/tulip/input/win32.py",
     "src/tulip/input/posix.py"
 ]
+
+[tool.ruff.lint]
+
+ignore = ["E741"]

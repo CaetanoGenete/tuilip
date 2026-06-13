@@ -1,4 +1,6 @@
-from tulip.components import select, tabview, tabview_fixed
+from typing import assert_type
+
+from tulip.components import echo_key, prompt, select, tabview, tabview_fixed
 from tulip.render.rich import loop
 from tulip.render.types import Text
 from tulip.string import Justify
@@ -10,10 +12,11 @@ try:
         tabview(
             [
                 ("tab1", Text("tab1")),
-                ("tab 2", Text("tab2")),
-                ("tab3", select(LazySeq(200, lambda i: f"item - {i}"))),
+                ("tab 2", prompt()),
+                ("tab3", echo_key()),
+                ("tab4", select(LazySeq(200, lambda i: f"item - {i}"))),
                 (
-                    "tab4",
+                    "tab5",
                     select(
                         [
                             Text("item - a"),
@@ -33,6 +36,8 @@ try:
             ),
         ),
     )
+    assert_type(result, str | int)
+
 except KeyboardInterrupt:
     pass
 else:
