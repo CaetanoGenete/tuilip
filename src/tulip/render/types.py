@@ -10,9 +10,10 @@ if TYPE_CHECKING:
 
 
 class Signal(IntEnum):
-    NOCHANGE = 1
-    NOPROP = 2
+    POLLINPUT = 1
+    NOCHANGE = 2
     PROP = 3
+    NOPROP = 4
 
 
 NO_STYLE = ""

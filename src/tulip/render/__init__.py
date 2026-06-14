@@ -84,6 +84,8 @@ def render[R](
                     return cast(R, e.value)
 
                 match child:
+                    case Signal.POLLINPUT:
+                        break
                     case Signal.NOCHANGE:
                         assert comp.cache, "Component generator ran outside of loop!"
                         new_children = comp.cache.children
@@ -96,7 +98,7 @@ def render[R](
                         propkey = False
                         continue
                     case None:
-                        break
+                        continue
                     case _:
                         pass
 

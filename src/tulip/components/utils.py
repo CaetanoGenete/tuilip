@@ -9,7 +9,7 @@ class PollResult(NamedTuple):
     key: int
 
 
-def pollinput[**P](
+def pollcond[**P](
     commands: Mapping[int, Callable[P, bool | None]],
     poll: Callable[P, bool],
     *args: P.args,
@@ -31,7 +31,7 @@ def pollinput[**P](
 
     returned = False
 
-    key = yield
+    key = yield Signal.POLLINPUT
     while True:
         if key in commands and commands[key](*args, **kwargs):
             returned = True
@@ -79,7 +79,7 @@ def pollrefresh[**P, C: RefreshableController](
         NO_CHANGE signals, until conditions are satisfied.
     """
 
-    result = yield from pollinput(
+    result = yield from pollcond(
         commands,
         _pollrefresh,
         controller,

@@ -8,7 +8,7 @@ from tulip.components.types import (
     ComponentGen,
     Renderable,
 )
-from tulip.components.utils import pollinput, pollrefresh
+from tulip.components.utils import pollcond, pollrefresh
 from tulip.functional import rpadfn
 from tulip.input.keys import Key
 from tulip.math import divup
@@ -356,7 +356,7 @@ def tabview[R](
 
         yield tabs[tab_idx][1]
 
-        yield from pollinput(
+        yield from pollcond(
             commands,
             lambda c, _: c.refresh or last_tab != tab_idx,
             controller,
@@ -703,7 +703,7 @@ def prompt(
             controller.prompt[controller.cursor + 1 :],
         )
 
-        if (key := (yield)) in commands:
+        if (key := (yield Signal.POLLINPUT)) in commands:
             if commands[key](controller):
                 return controller.prompt
         else:
@@ -714,4 +714,4 @@ def prompt(
 def echo_key() -> ComponentGen[Never]:
     yield "Key: "
     while True:
-        yield f"Key: {(yield)}"
+        yield f"Key: {(yield Signal.POLLINPUT)}"
