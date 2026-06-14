@@ -9,6 +9,7 @@ from tulip.components.types import (
     Renderable,
 )
 from tulip.components.utils import pollinput, pollrefresh
+from tulip.functional import rpadfn
 from tulip.input.keys import Key
 from tulip.math import divup
 from tulip.render.types import Signal, Text, TextLike
@@ -65,7 +66,7 @@ def component[**P, R](
         fn: The build function
         stateless: If true, component is only built once.
         debug_name: The name of the component as it appears in logs and error messages. Defaults to the function name.
-        indent: Offsets (to the right) the component by `indent`.
+        indent: Offsets (to the right) the component by `indent`. See `tulip.components:padding` for more details.
 
     Returns:
         A Tuilip component.
@@ -134,6 +135,20 @@ def padding[R](
     comp: Renderable[R],
     indent: int,
 ) -> Renderable[R]:
+    """Indents child component by `indent` units.
+
+    This is a right translation of the entire component (and its descendants), relative
+    to its parent.
+
+    Indent may be negative, in which case the translation is now `-indent` units to the
+    left, relative to the parent. However note that _total_ (i.e. the sum of all
+    ancestor indents) is restricted to be non-negative (i.e. >= 0).
+
+    Args:
+        comp: The component to indent.
+        indent: An integer (may be negative).
+    """
+
     if indent == 0:
         return comp
 
@@ -157,11 +172,24 @@ class TabController:
     refresh: bool = False
 
     def next[R](self, tabs: Tabs[R]) -> None:
+        """Select the next tab.
+
+        On overflow, remains at the last tab.
+
+        Args:
+            tabs: The list of available tabs
+        """
+
         if self.tab + 1 < len(tabs):
             self.tab += 1
             self.refresh = True
 
     def prev[R](self) -> None:
+        """Select the previous tab.
+
+        On overflow, remains at the first tab.
+        """
+
         if self.tab > 0:
             self.tab -= 1
             self.refresh = True
@@ -182,6 +210,7 @@ def tabview_compact(
 
     Args:
         tabs_per_page: Number of tab titles to show per page.
+        sep: Separator between tabs (includes ends).
 
     Returns:
         Tabview formatter function.
@@ -199,11 +228,11 @@ def tabview_compact(
                 if tab_page > 0
                 else "tabview.arrow-disabled",
             ),
+            sep,
             *(
-                Text(sep, Text(tab, style="tabview.unselected"))
+                Text(Text(tab, style="tabview.unselected"), sep)
                 for tab in tabs[tab_page * tabs_per_page : tab_idx]
             ),
-            sep,
             Text(tab_name, style="tabview.selected"),
             *(
                 Text(sep, Text(tab, style="tabview.unselected"))
@@ -260,11 +289,11 @@ def tabview_fixed(
                 if tab_page > 0
                 else "tabview.arrow-disabled",
             ),
+            sep,
             *(
-                Text(sep, Text(tab, style="tabview.unselected"))
+                Text(Text(tab, style="tabview.unselected"), sep)
                 for tab in tabs[tab_page * tabs_per_page : tab_idx]
             ),
-            sep,
             Text(tab_name, style="tabview.selected"),
             *(
                 Text(sep, Text(tab, style="tabview.unselected"))
@@ -291,7 +320,7 @@ type TabviewCommandsMap[R] = StdCommandsMap[TabController, Tabs[R]]
 
 
 DEFAULT_TABVIEW_COMMANDS: TabviewCommandsMap[Any] = {
-    Key.LEFT: lambda c, _: c.prev(),
+    Key.LEFT: rpadfn(TabController.prev),
     Key.RIGHT: TabController.next,
 }
 DEFAULT_TABVIEW_HEADING = tabview_compact(3)
@@ -305,6 +334,15 @@ def tabview[R](
     controller: TabController | None = None,
     commands: TabviewCommandsMap[R] = DEFAULT_TABVIEW_COMMANDS,
 ) -> ComponentGen[R]:
+    """Shows one component (from `tabs`) at a time.
+
+    Args:
+        tabs: Sequence of (tab_name, component) tuples.
+        heading: Optional heading.
+        controller: Controller for this component.
+        commands: Optional key-action mapping.
+    """
+
     controller = controller or TabController(tab=0)
 
     last_tab = controller.tab
@@ -332,9 +370,16 @@ def tabview[R](
 @component(stateless=True)
 def seq[R](
     comps: Iterable[Renderable[R]],
-    separator: Renderable[R] = "",
+    sep: Renderable[R] = "",
 ) -> ComponentGen[R | None]:
-    if not separator:
+    """Lays out components sequentially, with an optional `separator` between.
+
+    Args:
+        comps: The components to layout.
+        sep: Optional Component to interleave between `comps`.
+    """
+
+    if not sep:
         for value in comps:
             yield value
         return
@@ -346,15 +391,15 @@ def seq[R](
         return
 
     for value in it:
-        yield separator
+        yield sep
         yield value
 
 
 def seqn[R](
     *comps: Renderable[R],
-    separator: Renderable[R] = "",
+    sep: Renderable[R] = "",
 ) -> Component[R]:
-    return seq(comps, separator=separator)
+    return seq(comps, sep=sep)
 
 
 @dataclass
@@ -363,25 +408,56 @@ class SelectController:
     refresh: bool = False
 
     def next(self, items: Sequence[Any]) -> None:
+        """Moves cursor to the next item, wrapping around if at the end.
+
+        Always refreshes.
+
+        Args:
+            items: The list of available items.
+        """
+
         self.index = (self.index + 1) % len(items)
         self.refresh = True
 
     def prev(self, items: Sequence[Any]) -> None:
+        """Moves cursor to the previous item, wrapping around if at the start.
+
+        Always refreshes.
+
+        Args:
+            items: The list of available items.
+        """
+
         self.index = (self.index - 1) % len(items)
         self.refresh = True
 
     def first(self) -> None:
+        """Moves cursor to the first item.
+
+        Refreshes if index has changed.
+        """
+
         if self.index != 0:
             self.index = 0
             self.refresh = True
 
     def last(self, items: Sequence[Any]) -> None:
-        lasti = max(0, len(items) - 1)
+        """Moves cursor to the last item.
+
+        Refreshes if index has changed.
+
+        Args:
+            items: The list of available items.
+        """
+
+        lasti = len(items) - 1
         if self.index != lasti:
             self.index = lasti
             self.refresh = True
 
     def select(self) -> bool:
+        """Select current element pointed at by cursor."""
+
         return True
 
 
@@ -391,9 +467,9 @@ type SelectCommandsMap[R] = StdCommandsMap[SelectController, Sequence[Renderable
 DEFAULT_SELECT_COMMANDS: dict[int, Callable[[SelectController, Any], Any]] = {
     Key.UP: SelectController.prev,
     Key.DOWN: SelectController.next,
-    Key.G_LOWER: lambda c, _: c.first(),
+    Key.G_LOWER: rpadfn(SelectController.first),
     Key.G: SelectController.last,
-    Key.CR: lambda c, _: c.select(),
+    Key.CR: rpadfn(SelectController.select),
 }
 DEFAULT_ITEMS_PER_PAGE = 10
 SELECT_MAX_BULLETS = 10
@@ -401,14 +477,28 @@ SELECT_MAX_BULLETS = 10
 
 @component
 def select[R](
-    values: Sequence[Renderable[R]],
+    comps: Sequence[Renderable[R]],
     *,
-    separator: TextLike = "\n",
+    sep: TextLike = "\n",
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
     commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
 ) -> ComponentGen[R | int]:
+    """Selects between 'comps'. Analogous to html <select>.
+
+    Args:
+        values: Components to select between.
+        sep: Optional separator componenet between `values`.
+        cursor: Cursor character (or string).
+        items_per_page: Number of items to show per page.
+        controller: Controller for this select component.
+        commands: Optional key-action mapping.
+
+    Returns:
+        Index of the selected component
+    """
+
     assert items_per_page > 0, "must be positive"
 
     controller = controller or SelectController(index=0)
@@ -419,8 +509,8 @@ def select[R](
     if isinstance(cursor, str):
         cursor = Text(cursor, style="select.selected")
 
-    if isinstance(separator, str):
-        separator = Text(separator)
+    if isinstance(sep, str):
+        sep = Text(sep)
 
     indent = len(cursor)
     cursorcomp = padding(
@@ -435,15 +525,15 @@ def select[R](
 
         yield padding(
             seqn(
-                *values[page * items_per_page : idx],
-                seqn(cursorcomp, values[idx]),
-                *values[idx + 1 : (page + 1) * items_per_page],
-                separator=separator,
+                *comps[page * items_per_page : idx],
+                seqn(cursorcomp, comps[idx]),
+                *comps[idx + 1 : (page + 1) * items_per_page],
+                sep=sep,
             ),
             indent=indent,
         )
 
-        if (nitems := len(values)) > items_per_page:
+        if (nitems := len(comps)) > items_per_page:
             npages = (nitems + items_per_page - 1) // items_per_page
 
             yield "\n\n"
@@ -460,7 +550,7 @@ def select[R](
                 indent=2,
             )
 
-        if (yield from pollrefresh(commands, controller, values)).done:
+        if (yield from pollrefresh(commands, controller, comps)).done:
             return controller.index
 
 
@@ -470,32 +560,90 @@ class PromptController:
     cursor: int = 0
 
     def prevchar(self) -> None:
+        """Moves cursor to the previous character (if not at the start)."""
+
         self.cursor = max(0, self.cursor - 1)
 
     def nextchar(self) -> None:
+        """Moves cursor to the next character (if not at the end)."""
+
         self.cursor = min(len(self.prompt), self.cursor + 1)
 
     def prevword(self) -> None:
-        self.cursor = self.prompt.rfind(" ", 0, max(0, self.cursor - 1)) + 1
+        """Moves cursor to the previous word.
+
+        A word is defined as a non-space character, separated by spaces.
+        """
+
+        cursor = self.cursor
+        prompt = self.prompt
+
+        while True:
+            cursor = prompt.rfind(" ", 0, max(0, cursor - 1)) + 1
+            if (
+                prompt[cursor - 1 : cursor] in ("", " ")
+                and prompt[cursor : cursor + 1] != " "
+            ):
+                break
+
+        self.cursor = cursor
 
     def nextword(self) -> None:
-        wstart = self.prompt.find(" ", self.cursor)
-        if wstart == -1:
-            wstart = len(self.prompt)
+        """Moves cursor to the next word.
 
-        self.cursor = wstart + 1
+        A word is defined as a non-space character, separated by spaces.
+        """
+
+        cursor = self.cursor
+        prompt = self.prompt
+
+        while True:
+            cursor = self.prompt.find(" ", cursor) + 1
+            if cursor == 0:
+                cursor = len(self.prompt)
+                break
+
+            if (
+                prompt[cursor - 1 : cursor] in ("", " ")
+                and prompt[cursor : cursor + 1] != " "
+            ):
+                break
+
+        self.cursor = cursor
+
+    def start(self) -> None:
+        """Places the cursor at the start of the prompt."""
+
+        self.cursor = 0
+
+    def end(self) -> None:
+        """Places the cursor at the end of the prompt."""
+
+        self.cursor = len(self.prompt)
 
     def delchar(self) -> None:
-        self.prompt = self.prompt[: self.cursor - 1] + self.prompt[self.cursor :]
+        """Deletes the character immediately before the cursor."""
+
+        self.prompt = (
+            self.prompt[: max(0, self.cursor - 1)] + self.prompt[self.cursor :]
+        )
         self.prevchar()
 
     def delword(self) -> None:
-        wstart = self.prompt.rfind(" ", 0, max(0, self.cursor - 1)) + 1
+        """Deletes up to the start of the word at or before the cursor."""
 
-        self.prompt = self.prompt[:wstart] + self.prompt[self.cursor :]
-        self.cursor = wstart
+        prev_cursor = self.cursor
+
+        self.prevword()
+        self.prompt = self.prompt[: self.cursor] + self.prompt[prev_cursor:]
 
     def insert(self, key: int) -> None:
+        """Insert the given key at the cursor, if it's printable.
+
+        Args:
+            key: Keycode to insert.
+        """
+
         # For now, only support printable ascii range
         if 32 <= key <= 126:
             self.prompt = (
@@ -521,6 +669,8 @@ DEFAULT_PROMPT_COMMANDS: PromptCommandsMap = {
     Key.CTRL_RIGHT: PromptController.nextword,
     Key.META_LEFT: PromptController.prevword,
     Key.META_RIGHT: PromptController.nextword,
+    Key.HOME: PromptController.start,
+    Key.END: PromptController.end,
 }
 
 
@@ -530,6 +680,15 @@ def prompt(
     controller: PromptController | None = None,
     commands: PromptCommandsMap = DEFAULT_PROMPT_COMMANDS,
 ) -> ComponentGen[str]:
+    """Text prompt.
+
+    Args:
+        controller: Controller for this prompt component.
+        commands: Optional key-action mapping.
+
+    Returns:
+        The entered prompt.
+    """
     controller = controller or PromptController()
 
     while True:
