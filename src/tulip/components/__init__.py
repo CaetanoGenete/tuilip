@@ -499,7 +499,7 @@ class PromptController:
         # For now, only support printable ascii range
         if 32 <= key <= 126:
             self.prompt = (
-                self.prompt[: self.cursor] + chr(key) + self.prompt[self.cursor :]
+                f"{self.prompt[: self.cursor]}{chr(key)}{self.prompt[self.cursor :]}"
             )
             self.nextchar()
 
@@ -519,6 +519,8 @@ DEFAULT_PROMPT_COMMANDS: PromptCommandsMap = {
     Key.RIGHT: PromptController.nextchar,
     Key.CTRL_LEFT: PromptController.prevword,
     Key.CTRL_RIGHT: PromptController.nextword,
+    Key.META_LEFT: PromptController.prevword,
+    Key.META_RIGHT: PromptController.nextword,
 }
 
 

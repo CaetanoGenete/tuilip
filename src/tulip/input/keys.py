@@ -161,6 +161,7 @@ class Key(IntEnum):
 
     SDEL = auto()
     HOME = auto()
+    INSERT = auto()
     PAGE_UP = auto()
     PAGE_DOWN = auto()
     END = auto()

@@ -41,6 +41,14 @@ class Win32InputHandler(InputHandler):
                     return Key.CTRL_UP
                 case 145:
                     return Key.CTRL_DOWN
+                case 155:
+                    return Key.META_LEFT
+                case 157:
+                    return Key.META_RIGHT
+                case 152:
+                    return Key.META_UP
+                case 160:
+                    return Key.META_DOWN
                 case _:
                     return 0
 
