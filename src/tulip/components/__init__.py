@@ -464,14 +464,16 @@ class SelectController:
 type SelectCommandsMap[R] = StdCommandsMap[SelectController, Sequence[Renderable[R]]]
 
 
+DEFAULT_ITEMS_PER_PAGE = 10
 DEFAULT_SELECT_COMMANDS: dict[int, Callable[[SelectController, Any], Any]] = {
     Key.UP: SelectController.prev,
     Key.DOWN: SelectController.next,
     Key.G_LOWER: rpadfn(SelectController.first),
+    Key.HOME: rpadfn(SelectController.first),
     Key.G: SelectController.last,
+    Key.END: SelectController.last,
     Key.CR: rpadfn(SelectController.select),
 }
-DEFAULT_ITEMS_PER_PAGE = 10
 SELECT_MAX_BULLETS = 10
 
 
