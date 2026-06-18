@@ -1,0 +1,48 @@
+< tab 1 tab 2 >
+> [2D[2Citem 0
+[2Citem 1
+[2Citem 2
+[2Citem 3
+[2Citem 4
+
+;;; key: DOWN ;;;
+
+< tab 1 tab 2 >
+[2Citem 0
+> [2D[2Citem 1
+[2Citem 2
+[2Citem 3
+[2Citem 4
+
+;;; key: RIGHT ;;;
+
+< tab 1 tab 2 >
+> [2D[2Celem 0
+[2Celem 1
+[2Celem 2
+[2Celem 3
+
+;;; key: RIGHT ;;;
+
+< tab 1 tab 2 >
+[2Celem 0
+> [2D[2Celem 1
+[2Celem 2
+[2Celem 3
+
+;;; key: RIGHT ;;;
+
+< tab 1 tab 2 >
+[2Celem 0
+[2Celem 1
+> [2D[2Celem 2
+[2Celem 3
+
+;;; key: LEFT ;;;
+
+< tab 1 tab 2 >
+[2Citem 0
+> [2D[2Citem 1
+[2Citem 2
+[2Citem 3
+[2Citem 4

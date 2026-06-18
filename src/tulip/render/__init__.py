@@ -1,11 +1,13 @@
 from dataclasses import dataclass
 from inspect import GEN_CREATED, getgeneratorstate
-from typing import cast
+from typing import Iterable, Iterator, cast
 
 from collections.abc import Callable
+import weakref
+
 from tulip.components.types import Component
 from tulip.render.exceptions import TooManyChildrenException
-from tulip.render.types import CompNode, Signal, Text
+from tulip.render.types import CompNode, Signal, Span, Text
 
 
 @dataclass(slots=True)
@@ -123,3 +125,35 @@ def render[R](
             stack.extend(reversed(curr.children))
 
         key = onrefresh(screen)
+
+
+def resolve_indent(screen: Iterable[TextView]) -> Iterator[Span]:
+    last_indent = 0
+    for view in screen:
+        view_indent = view.indent
+
+        for span in view.text.spans():
+            indent = view_indent + span.indent
+            parsed_str = span.value
+
+            if indent > 0:
+                if (diff := indent - last_indent) > 0:
+                    parsed_str = f"\x1b[{diff}C{parsed_str}"
+                elif diff < 0:
+                    parsed_str = f"\x1b[{-diff}D{parsed_str}"
+
+                last_char = parsed_str[-1]
+                parsed_str = (
+                    f"{parsed_str[:-1].replace('\n', f'\n\x1b[{indent}C')}{last_char}"
+                )
+
+                if last_char == "\n":
+                    indent = 0
+
+            last_indent = indent
+
+            yield Span(
+                value=parsed_str,
+                style=span.style,
+                indent=0,
+            )

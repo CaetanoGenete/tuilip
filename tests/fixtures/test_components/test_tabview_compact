@@ -1,0 +1,32 @@
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 0
+
+;;; key: LEFT ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 0
+
+;;; key: RIGHT ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 1
+
+;;; key: RIGHT ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 2
+
+;;; key: RIGHT ;;;
+
+< tab 3 >
+Content for tab: tab 3
+
+;;; key: RIGHT ;;;
+
+< tab 3 >
+Content for tab: tab 3
+
+;;; key: LEFT ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 2

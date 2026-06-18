@@ -10,7 +10,7 @@ from rich.theme import Theme
 from tulip.components.types import Component
 from tulip.input.types import InputHandler
 from tulip.input import DefaultInputHandler
-from tulip.render import TextView, render
+from tulip.render import TextView, render, resolve_indent
 from tulip.render.types import Text
 
 DEFAULT_THEME = Theme(
@@ -39,36 +39,9 @@ def loop[R](
         console = Console(theme=DEFAULT_THEME)
 
     def onrefresh(screen: list[TextView]) -> int:
-        result = RichText()
-
-        last_indent = 0
-        for view in screen:
-            view_indent = view.indent
-
-            for span in view.text.spans():
-                indent = view_indent + span.indent
-                parsed_str = span.value
-
-                if indent > 0:
-                    if (diff := indent - last_indent) > 0:
-                        parsed_str = f"\x1b[{diff}C{parsed_str}"
-                    elif diff < 0:
-                        parsed_str = f"\x1b[{-diff}D{parsed_str}"
-
-                    last_char = parsed_str[-1]
-                    parsed_str = f"{parsed_str[:-1].replace('\n', f'\n\x1b[{indent}C')}{last_char}"
-
-                    if last_char == "\n":
-                        indent = 0
-
-                last_indent = indent
-
-                result.append(
-                    RichText.from_markup(
-                        parsed_str,
-                        style=span.style,
-                    ),
-                )
+        result = RichText.assemble(
+            *((span.value, span.style) for span in resolve_indent(screen))
+        )
 
         live.update(result, refresh=True)
 
