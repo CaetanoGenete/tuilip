@@ -163,7 +163,7 @@ def padding[R](
     return result()
 
 
-type Tabs[R] = Sequence[tuple[TextLike, Renderable[R]]]
+type Tab[R] = tuple[TextLike, Renderable[R]]
 
 
 @dataclass(slots=True)
@@ -171,7 +171,7 @@ class TabController:
     tab: int
     refresh: bool = False
 
-    def next[R](self, tabs: Tabs[R]) -> None:
+    def next[R](self, tabs: Sequence[Tab[R]]) -> None:
         """Select the next tab.
 
         On overflow, remains at the last tab.
@@ -316,7 +316,7 @@ def tabview_fixed(
     return _heading
 
 
-type TabviewCommandsMap[R] = StdCommandsMap[TabController, Tabs[R]]
+type TabviewCommandsMap[R] = StdCommandsMap[TabController, Sequence[Tab[R]]]
 
 
 DEFAULT_TABVIEW_COMMANDS: TabviewCommandsMap[Any] = {
@@ -328,7 +328,7 @@ DEFAULT_TABVIEW_HEADING = tabview_compact(3)
 
 @component
 def tabview[R](
-    tabs: Tabs[R],
+    tabs: Sequence[Tab[R]],
     *,
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
@@ -346,6 +346,18 @@ def tabview[R](
     controller = controller or TabController(tab=0)
 
     last_tab = controller.tab
+
+    def _poll(*_: Any) -> bool:
+        nonlocal last_tab
+
+        tab_idx = controller.tab
+        refresh = controller.refresh and last_tab != tab_idx
+
+        last_tab = tab_idx
+        controller.refresh = False
+
+        return refresh
+
     while True:
         tab_idx = controller.tab
 
@@ -355,16 +367,25 @@ def tabview[R](
             yield Signal.NOPROP
 
         yield tabs[tab_idx][1]
+        yield from pollcond(commands, _poll, controller, tabs)
 
-        yield from pollcond(
-            commands,
-            lambda c, _: c.refresh or last_tab != tab_idx,
-            controller,
-            tabs,
-        )
 
-        controller.refresh = False
-        last_tab = tab_idx
+def tabviewn[R](
+    *tabs: Tab[R],
+    heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
+    controller: TabController | None = None,
+    commands: TabviewCommandsMap[R] = DEFAULT_TABVIEW_COMMANDS,
+) -> Component[R]:
+    """Variadic interface for `tabview`.
+
+    Args:
+        tabs: (tab_name, component) tuples.
+        heading: Optional heading.
+        controller: Controller for this component.
+        commands: Optional key-action mapping.
+    """
+
+    return tabview(tabs, heading=heading, controller=controller, commands=commands)
 
 
 @component(stateless=True)

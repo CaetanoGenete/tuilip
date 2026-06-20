@@ -1,0 +1,27 @@
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 1
+
+;;; key: NULL ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 2
+
+;;; key: NULL ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 0
+
+;;; key: NULL ;;;
+
+< tab 3 >
+Content for tab: tab 3
+
+;;; key: NULL ;;;
+
+< tab 3 >
+Content for tab: tab 3
+
+;;; key: RIGHT ;;;
+
+< tab 0 tab 1 tab 2 >
+Content for tab: tab 2

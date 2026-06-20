@@ -75,7 +75,7 @@ class ComponentTester[R]:
     def next(self, *keys: Key) -> None:
         """Render the next frame of the component.
 
-        `keys` are fed to the renderer in order.
+        `keys` are fed to the renderer in order. This may trigger a render per key.
 
         Raises:
             NoMoreFrameError: If this function is called after the component has returned.
@@ -132,6 +132,6 @@ class ComponentTester[R]:
 
                 for frame in self.frames[1:]:
                     key = frame.key
-                    assert key
+                    assert key is not None
 
                     f.write(f"\n\n;;; key: {key.name} ;;;\n\n{frame.rendered}")

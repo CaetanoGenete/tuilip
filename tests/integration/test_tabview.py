@@ -9,6 +9,7 @@ from tulip.components import (
     select,
     tabview,
     tabview_compact,
+    tabviewn,
 )
 from tulip.input.keys import Key
 from tulip.tester import ComponentTester
@@ -42,11 +43,9 @@ def test_with_interactible_tab(snapshot_path: Path) -> None:
     """Tests tabview tab remains interactible."""
 
     tester = ComponentTester(
-        tabview(
-            tabs=[
-                ("tab 1", "Some text"),
-                ("tab 2", select([f"item {i}" for i in range(5)])),
-            ],
+        tabviewn(
+            ("tab 1", "Some text"),
+            ("tab 2", select([f"item {i}" for i in range(5)])),
             heading=tabview_compact(3, " "),
         ),
     )
@@ -61,26 +60,24 @@ def test_with_interactible_tab(snapshot_path: Path) -> None:
 
 def test_noyield(snapshot_path: Path) -> None:
     tester = ComponentTester(
-        tabview(
-            tabs=[
-                (
-                    "tab 1",
-                    select(
-                        [f"item {i}" for i in range(5)],
-                        commands={
-                            Key.RIGHT: SelectController.next,
-                            Key.DOWN: SelectController.next,
-                        },
-                    ),
+        tabviewn(
+            (
+                "tab 1",
+                select(
+                    [f"item {i}" for i in range(5)],
+                    commands={
+                        Key.RIGHT: SelectController.next,
+                        Key.DOWN: SelectController.next,
+                    },
                 ),
-                (
-                    "tab 2",
-                    select(
-                        [f"elem {i}" for i in range(4)],
-                        commands={Key.RIGHT: SelectController.next},
-                    ),
+            ),
+            (
+                "tab 2",
+                select(
+                    [f"elem {i}" for i in range(4)],
+                    commands={Key.RIGHT: SelectController.next},
                 ),
-            ],
+            ),
             heading=tabview_compact(3, " "),
             commands={
                 Key.LEFT: rpadfn(TabController.prev),
@@ -93,3 +90,26 @@ def test_noyield(snapshot_path: Path) -> None:
         tester.next(Key.DOWN)
         tester.next(*repeat(Key.RIGHT, 3))
         tester.next(Key.LEFT)
+
+
+def test_controller(snapshot_path: Path) -> None:
+    controller = TabController(tab=1)
+    tester = ComponentTester(
+        tabview(
+            [(f"tab {i}", f"Content for tab: tab {i}") for i in range(4)],
+            heading=tabview_compact(3, " "),
+            controller=controller,
+        ),
+    )
+
+    with tester.record(snapshot_path, compare=True):
+        for tab in (2, 0, 3):
+            controller.tab = tab
+            controller.refresh = True
+            tester.next(Key.NULL)
+
+        # Should not re-render
+        controller.tab = 1
+        tester.next(Key.NULL)
+
+        tester.next(Key.RIGHT)

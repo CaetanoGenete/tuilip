@@ -5,6 +5,8 @@ SPECIAL_KEY_START = 0x110000
 
 
 class Key(IntEnum):
+    NULL = 0
+
     # Control characters (1 - 31)
     CTRL_A = 1
     CTRL_B = 2

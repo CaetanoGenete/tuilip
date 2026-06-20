@@ -56,7 +56,10 @@ def _pollrefresh[**P](
 ) -> bool:
     del args
     del kwargs
-    return controller.refresh
+
+    refresh = controller.refresh
+    controller.refresh = False
+    return refresh
 
 
 def pollrefresh[**P, C: RefreshableController](
@@ -86,6 +89,5 @@ def pollrefresh[**P, C: RefreshableController](
         *args,
         **kwargs,
     )
-    controller.refresh = False
 
     return result
