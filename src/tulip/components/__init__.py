@@ -100,7 +100,7 @@ def _noprop[R](comp: Component[R]) -> ComponentGen[R]:
     yield comp
 
 
-def noprop[R](comp: Component[R], noprop: bool = True):
+def noprop[R](comp: Component[R], noprop: bool = True) -> Component[R]:
     """Prevents 'key' from being passed down to components wrapped by this
     function.
 
@@ -420,6 +420,12 @@ def seqn[R](
     *comps: Renderable[R],
     sep: Renderable[R] = "",
 ) -> Component[R]:
+    """Lays out components sequentially, with an optional `separator` between.
+
+    Args:
+        comps: The components to layout.
+        sep: Optional Component to interleave between `comps`.
+    """
     return seq(comps, sep=sep)
 
 

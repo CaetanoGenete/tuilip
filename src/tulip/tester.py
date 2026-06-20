@@ -15,7 +15,7 @@ from tulip.render.types import Text
 def _to_xml_element(comp: Component[Any]) -> Element:
     parent = Element(
         comp.debug_name,
-        {
+        attrib={
             "stateless": str(comp.stateless),
             "indent": str(comp.indent),
         },
@@ -38,7 +38,8 @@ def _to_xml_element(comp: Component[Any]) -> Element:
     return parent
 
 
-SNAPSHOT_PATTERN = re.compile(r"\n\n^;;; key: [a-zA-Z_]+ ;;;$\n\n", re.MULTILINE)
+SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"
+SNAPSHOT_PATTERN = re.compile(SNAPSHOT_FRAME_DELIM % "[a-zA-Z_]+")
 
 
 def _iter_snapshot(snapshots: str) -> Iterator[str]:
@@ -52,7 +53,7 @@ def _iter_snapshot(snapshots: str) -> Iterator[str]:
     yield snapshots[last:]
 
 
-class NoMoreFrameError(Exception): ...
+class NoMoreFramesError(Exception): ...
 
 
 @dataclass
@@ -69,23 +70,23 @@ class ComponentTester[R]:
     frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
 
     def __post_init__(self) -> None:
-        self.render_it = render_it([self.comp])
+        self.__render_it = render_it([self.comp])
         self.next(None)  # type: ignore
 
     def next(self, *keys: Key) -> None:
         """Render the next frame of the component.
 
-        `keys` are fed to the renderer in order. This may trigger a render per key.
+        `keys` are fed to the renderer in order; this may trigger a render per key.
 
         Raises:
-            NoMoreFrameError: If this function is called after the component has returned.
+            NoMoreFrameError: If called after the component has returned.
         """
         for key in keys:
             if self.done:
-                raise NoMoreFrameError()
+                raise NoMoreFramesError()
 
             try:
-                screen = self.render_it.send(key)
+                screen = self.__render_it.send(key)
             except StopIteration as e:
                 self.ret = e.value
                 self.done = True
@@ -99,7 +100,6 @@ class ComponentTester[R]:
     def find(self, xpath: str) -> Element | None:
         root = Element("root")
         root.append(_to_xml_element(self.comp))
-
         return ElementTree(root).find(xpath)
 
     @contextmanager
@@ -134,4 +134,4 @@ class ComponentTester[R]:
                     key = frame.key
                     assert key is not None
 
-                    f.write(f"\n\n;;; key: {key.name} ;;;\n\n{frame.rendered}")
+                    f.write(f"{SNAPSHOT_FRAME_DELIM % key.name}{frame.rendered}")

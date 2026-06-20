@@ -1,6 +1,6 @@
 from typing import assert_type
 
-from tulip.components import echo_key, prompt, select, tabview, tabview_fixed, tabviewn
+from tulip.components import echo_key, prompt, select, tabview_fixed, tabviewn
 from tulip.render.rich import loop
 from tulip.render.types import Text
 from tulip.string import Justify
