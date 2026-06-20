@@ -1,6 +1,6 @@
 from typing import assert_type
 
-from tulip.components import echo_key, prompt, select, tabview_fixed, tabviewn
+from tulip.components import echo_key, prompt, select, selectn, tabview_fixed, tabviewn
 from tulip.render.rich import loop
 from tulip.render.types import Text
 from tulip.string import Justify
@@ -16,14 +16,12 @@ try:
             ("tab4", select(LazySeq(200, lambda i: f"item - {i}"))),
             (
                 "tab5",
-                select(
-                    [
-                        Text("item - a"),
-                        select(LazySeq(3, lambda i: f"item - {i}")),
-                        Text("item - b"),
-                        Text("item - c"),
-                        Text("item - d"),
-                    ]
+                selectn(
+                    Text("item - a"),
+                    select(LazySeq(3, lambda i: f"item - {i}")),
+                    Text("item - b"),
+                    Text("item - c"),
+                    Text("item - d"),
                 ),
             ),
             heading=tabview_fixed(

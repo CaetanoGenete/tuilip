@@ -12,32 +12,6 @@ from tulip.render import render_it, resolve_indent
 from tulip.render.types import Text
 
 
-def _to_xml_element(comp: Component[Any]) -> Element:
-    parent = Element(
-        comp.debug_name,
-        attrib={
-            "stateless": str(comp.stateless),
-            "indent": str(comp.indent),
-        },
-    )
-
-    if comp.cache:
-        last: Element | None = None
-        for child_node in comp.cache.children:
-            child_comp = child_node.comp
-
-            if isinstance(child_comp, Text):
-                if last is None:
-                    parent.text = str(child_comp)
-                else:
-                    last.tail = str(child_comp)
-            else:
-                last = _to_xml_element(child_comp)
-                parent.append(last)
-
-    return parent
-
-
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"
 SNAPSHOT_PATTERN = re.compile(SNAPSHOT_FRAME_DELIM % "[a-zA-Z_]+")
 
@@ -56,10 +30,18 @@ def _iter_snapshot(snapshots: str) -> Iterator[str]:
 class NoMoreFramesError(Exception): ...
 
 
-@dataclass
+@dataclass(slots=True)
 class TestFrame:
     key: Key | None
     rendered: str
+
+
+@dataclass(slots=True)
+class ComponentQueryResult:
+    debug_name: str
+    stateless: bool
+    indent: int
+    rebuilt: bool
 
 
 @dataclass
@@ -71,6 +53,8 @@ class ComponentTester[R]:
 
     def __post_init__(self) -> None:
         self.__render_it = render_it([self.comp])
+        self.__build_id: dict[int, int] = {}
+
         self.next(None)  # type: ignore
 
     def next(self, *keys: Key) -> None:
@@ -81,9 +65,25 @@ class ComponentTester[R]:
         Raises:
             NoMoreFrameError: If called after the component has returned.
         """
-        for key in keys:
+        for i, key in enumerate(keys):
             if self.done:
                 raise NoMoreFramesError()
+
+            if i == len(keys) - 1:
+                self.__build_id = {}
+
+                stack = [self.comp]
+                while stack:
+                    curr = stack.pop()
+
+                    if (cache := curr.cache) is not None:
+                        # On rebuild, children list is always recreated
+                        self.__build_id[id(curr)] = id(cache.children)
+                        stack.extend(
+                            node.comp
+                            for node in reversed(cache.children)
+                            if not isinstance(node.comp, Text)
+                        )
 
             try:
                 screen = self.__render_it.send(key)
@@ -97,10 +97,48 @@ class ComponentTester[R]:
                 )
                 self.frames.append(frame)
 
-    def find(self, xpath: str) -> Element | None:
+    def _to_xml_element(self, comp: Component[Any]) -> Element:
+        prev_id = self.__build_id.get(id(comp))
+        curr_id = None if comp.cache is None else id(comp.cache.children)
+
+        parent = Element(
+            comp.debug_name,
+            attrib={
+                "stateless": str(comp.stateless),
+                "indent": str(comp.indent),
+                "rebuilt": str(curr_id != prev_id),
+            },
+        )
+
+        if comp.cache:
+            last: Element | None = None
+            for child_node in comp.cache.children:
+                child_comp = child_node.comp
+
+                if isinstance(child_comp, Text):
+                    if last is None:
+                        parent.text = str(child_comp)
+                    else:
+                        last.tail = str(child_comp)
+                else:
+                    last = self._to_xml_element(child_comp)
+                    parent.append(last)
+
+        return parent
+
+    def find(self, xpath: str) -> ComponentQueryResult | None:
         root = Element("root")
-        root.append(_to_xml_element(self.comp))
-        return ElementTree(root).find(xpath)
+        root.append(self._to_xml_element(self.comp))
+        result = ElementTree(root).find(xpath)
+        if result is None:
+            return None
+
+        return ComponentQueryResult(
+            debug_name=result.tag,
+            indent=int(result.attrib["indent"]),
+            stateless=result.attrib["stateless"].lower() == "true",
+            rebuilt=result.attrib["rebuilt"].lower() == "true",
+        )
 
     @contextmanager
     def record(self, out: str | Path, *, compare: bool) -> Generator[None, None, None]:

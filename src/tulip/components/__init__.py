@@ -346,21 +346,19 @@ def tabview[R](
     controller = controller or TabController(tab=0)
 
     last_tab = controller.tab
+    tab_idx = controller.tab
+    refresh = False
 
     def _poll(*_: Any) -> bool:
-        nonlocal last_tab
+        nonlocal refresh
 
-        tab_idx = controller.tab
-        refresh = controller.refresh and last_tab != tab_idx
-
-        last_tab = tab_idx
+        refresh = controller.refresh
+        change = refresh or last_tab != tab_idx
         controller.refresh = False
 
-        return refresh
+        return change
 
     while True:
-        tab_idx = controller.tab
-
         yield heading(ShelfView(tabs, 0), tab_idx)
 
         if last_tab != tab_idx:
@@ -368,6 +366,10 @@ def tabview[R](
 
         yield tabs[tab_idx][1]
         yield from pollcond(commands, _poll, controller, tabs)
+
+        last_tab = tab_idx
+        if refresh:
+            tab_idx = controller.tab
 
 
 def tabviewn[R](
@@ -420,7 +422,7 @@ def seqn[R](
     *comps: Renderable[R],
     sep: Renderable[R] = "",
 ) -> Component[R]:
-    """Lays out components sequentially, with an optional `separator` between.
+    """Variadic interface for `seq`
 
     Args:
         comps: The components to layout.
@@ -581,6 +583,37 @@ def select[R](
 
         if (yield from pollrefresh(commands, controller, comps)).done:
             return controller.index
+
+
+def selectn[R](
+    *comps: Renderable[R],
+    sep: TextLike = "\n",
+    cursor: TextLike | None = None,
+    items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
+    controller: SelectController | None = None,
+    commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
+) -> Component[R | int]:
+    """Variadic interface for `select`.
+
+    Args:
+        values: Components to select between.
+        sep: Optional separator componenet between `values`.
+        cursor: Cursor character (or string).
+        items_per_page: Number of items to show per page.
+        controller: Controller for this select component.
+        commands: Optional key-action mapping.
+
+    Returns:
+        Index of the selected component
+    """
+    return select(
+        comps,
+        sep=sep,
+        cursor=cursor,
+        items_per_page=items_per_page,
+        controller=controller,
+        commands=commands,
+    )
 
 
 @dataclass

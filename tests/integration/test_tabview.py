@@ -1,17 +1,20 @@
 from itertools import repeat
 from pathlib import Path
 
+from tulip.components.types import ComponentGen
 from tulip.functional import rpadfn
 
 from tulip.components import (
     SelectController,
     TabController,
+    component,
     select,
     tabview,
     tabview_compact,
     tabviewn,
 )
 from tulip.input.keys import Key
+from tulip.render.types import Signal
 from tulip.tester import ComponentTester
 
 
@@ -108,8 +111,31 @@ def test_controller(snapshot_path: Path) -> None:
             controller.refresh = True
             tester.next(Key.NULL)
 
-        # Should not re-render
+        # Tab change should have no effect unless refresh = True
         controller.tab = 1
         tester.next(Key.NULL)
 
         tester.next(Key.RIGHT)
+
+
+@component
+def rebuilding_component() -> ComponentGen[None]:
+    idx = 0
+    while True:
+        yield f"Value: {idx}"
+        if (yield Signal.POLLINPUT) != Key.NULL:
+            idx += 1
+
+
+def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
+    tester = ComponentTester(
+        tabviewn(
+            ("tab 1", rebuilding_component()),
+            ("tab 2", rebuilding_component()),
+            heading=tabview_compact(3, " "),
+        ),
+    )
+
+    with tester.record(snapshot_path, compare=True):
+        tester.next(Key.RIGHT)
+        tester.next(Key.LEFT)
