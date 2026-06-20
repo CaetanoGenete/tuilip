@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from inspect import GEN_CREATED, getgeneratorstate
-from typing import Iterable, Iterator, cast
+from typing import Generator, Iterable, Iterator, Reversible, cast
 
 from collections.abc import Callable
-import weakref
 
 from tulip.components.types import Component
 from tulip.render.exceptions import TooManyChildrenException
@@ -19,10 +18,9 @@ class TextView:
 MAX_COMPONENT_CHILDREN = 1000
 
 
-def render[R](
-    *components: Component[R] | Text,
-    onrefresh: Callable[[list[TextView]], int],
-) -> R:
+def render_it[R](
+    components: Reversible[Component[R] | Text],
+) -> Generator[list[TextView], int, R]:
     nodes = list(map(CompNode, reversed(components)))
 
     key = 0
@@ -124,7 +122,25 @@ def render[R](
             curr.children = new_children
             stack.extend(reversed(curr.children))
 
-        key = onrefresh(screen)
+        key = yield screen
+
+
+def render[R](
+    *components: Component[R] | Text,
+    onrefresh: Callable[[list[TextView]], int],
+) -> R:
+    renderer = render_it(components)
+
+    try:
+        screen = next(renderer)
+    except StopIteration as e:
+        return e.value
+
+    while True:
+        try:
+            screen = renderer.send(onrefresh(screen))
+        except StopIteration as e:
+            return e.value
 
 
 def resolve_indent(screen: Iterable[TextView]) -> Iterator[Span]:
