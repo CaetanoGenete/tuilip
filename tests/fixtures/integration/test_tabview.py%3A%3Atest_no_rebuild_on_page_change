@@ -1,12 +1,18 @@
 < tab 1 tab 2 >
-Value: 0
+id: tab1
+buildno: 0
+key: NULL
 
 ;;; key: RIGHT ;;;
 
 < tab 1 tab 2 >
-Value: 0
+id: tab2
+buildno: 0
+key: NULL
 
 ;;; key: LEFT ;;;
 
 < tab 1 tab 2 >
-Value: 0
+id: tab1
+buildno: 1
+key: NULL

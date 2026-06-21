@@ -3,12 +3,12 @@ id: tab1
 buildno: 0
 key: NULL
 
-;;; key: LEFT ;;;
+;;; key: DOWN ;;;
 
 < tab 1 tab 2 >
 id: tab1
 buildno: 1
-key: LEFT
+key: DOWN
 
 ;;; key: RIGHT ;;;
 
@@ -17,23 +17,9 @@ id: tab2
 buildno: 0
 key: NULL
 
-;;; key: RIGHT ;;;
+;;; key: DOWN ;;;
 
 < tab 1 tab 2 >
 id: tab2
 buildno: 1
-key: RIGHT
-
-;;; key: LEFT ;;;
-
-< tab 1 tab 2 >
-id: tab1
-buildno: 2
-key: NULL
-
-;;; key: LEFT ;;;
-
-< tab 1 tab 2 >
-id: tab1
-buildno: 3
-key: LEFT
+key: DOWN

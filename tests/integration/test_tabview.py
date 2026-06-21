@@ -1,21 +1,16 @@
+from dataclasses import replace
 from itertools import repeat
 from pathlib import Path
 
-from tulip.components.types import ComponentGen
-from tulip.functional import rpadfn
-
 from tulip.components import (
-    SelectController,
     TabController,
-    component,
     select,
     tabview,
     tabview_compact,
     tabviewn,
 )
 from tulip.input.keys import Key
-from tulip.render.types import Signal
-from tulip.tester import ComponentTester
+from tulip.tester import ComponentTester, MockCompState, mock_comp
 
 
 def test_compact(snapshot_path: Path) -> None:
@@ -62,37 +57,39 @@ def test_with_interactible_tab(snapshot_path: Path) -> None:
 
 
 def test_noyield(snapshot_path: Path) -> None:
+    tab1 = MockCompState(id="tab1")
+    tab2 = MockCompState(id="tab2")
+
     tester = ComponentTester(
         tabviewn(
-            (
-                "tab 1",
-                select(
-                    [f"item {i}" for i in range(5)],
-                    commands={
-                        Key.RIGHT: SelectController.next,
-                        Key.DOWN: SelectController.next,
-                    },
-                ),
-            ),
-            (
-                "tab 2",
-                select(
-                    [f"elem {i}" for i in range(4)],
-                    commands={Key.RIGHT: SelectController.next},
-                ),
-            ),
-            heading=tabview_compact(3, " "),
-            commands={
-                Key.LEFT: rpadfn(TabController.prev),
-                Key.RIGHT: TabController.next,
-            },
+            ("tab 1", mock_comp(tab1)),
+            ("tab 2", mock_comp(tab2)),
         ),
     )
 
     with tester.record(snapshot_path, compare=True):
-        tester.next(Key.DOWN)
-        tester.next(*repeat(Key.RIGHT, 3))
         tester.next(Key.LEFT)
+        assert tab1.key == Key.LEFT
+
+        last_tab1_state = replace(tab1)
+
+        tester.next(Key.RIGHT)
+        assert tab1 == last_tab1_state
+        assert tab2.key == Key.NULL
+
+        tester.next(Key.RIGHT)
+        assert tab1 == last_tab1_state
+        assert tab2.key == Key.RIGHT
+
+        last_tab2_state = replace(tab2)
+
+        tester.next(Key.LEFT)
+        assert tab1.key == Key.NULL
+        assert tab2 == last_tab2_state
+
+        tester.next(Key.LEFT)
+        assert tab1.key == Key.LEFT
+        assert tab2 == last_tab2_state
 
 
 def test_controller(snapshot_path: Path) -> None:
@@ -118,20 +115,11 @@ def test_controller(snapshot_path: Path) -> None:
         tester.next(Key.RIGHT)
 
 
-@component
-def rebuilding_component() -> ComponentGen[None]:
-    idx = 0
-    while True:
-        yield f"Value: {idx}"
-        if (yield Signal.POLLINPUT) != Key.NULL:
-            idx += 1
-
-
 def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
     tester = ComponentTester(
         tabviewn(
-            ("tab 1", rebuilding_component()),
-            ("tab 2", rebuilding_component()),
+            ("tab 1", mock_comp(id="tab1")),
+            ("tab 2", mock_comp(id="tab2")),
             heading=tabview_compact(3, " "),
         ),
     )
@@ -139,3 +127,25 @@ def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
     with tester.record(snapshot_path, compare=True):
         tester.next(Key.RIGHT)
         tester.next(Key.LEFT)
+
+
+def test_no_change(snapshot_path: Path) -> None:
+    tester = ComponentTester(
+        tabviewn(
+            ("tab 1", mock_comp(id="tab1")),
+            ("tab 2", mock_comp(id="tab2")),
+            heading=tabview_compact(3, " "),
+        ),
+    )
+
+    with tester.record(snapshot_path, compare=True):
+        tester.next(Key.DOWN)
+
+        assert (comp := tester.find("./tabview"))
+        assert not comp.rebuilt
+
+        tester.next(Key.RIGHT)
+        tester.next(Key.DOWN)
+
+        assert (comp := tester.find("./tabview"))
+        assert not comp.rebuilt

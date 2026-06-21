@@ -8,7 +8,7 @@ from tulip.components.types import (
     ComponentGen,
     Renderable,
 )
-from tulip.components.utils import pollcond, pollrefresh
+from tulip.components.utils import pollrefresh
 from tulip.functional import rpadfn
 from tulip.input.keys import Key
 from tulip.math import divup
@@ -94,13 +94,8 @@ def component[**P, R](
 type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | None]]
 
 
-@component(stateless=True, debug_name="noprop")
-def _noprop[R](comp: Component[R]) -> ComponentGen[R]:
-    yield Signal.NOPROP
-    yield comp
-
-
-def noprop[R](comp: Component[R], noprop: bool = True) -> Component[R]:
+@component(stateless=True)
+def noprop[R](comp: Component[R]) -> ComponentGen[R]:
     """Prevents 'key' from being passed down to components wrapped by this
     function.
 
@@ -111,10 +106,29 @@ def noprop[R](comp: Component[R], noprop: bool = True) -> Component[R]:
     Returns:
         A component.
     """
-    if noprop:
-        return _noprop(comp)
+    yield Signal.NOPROP
+    yield comp
 
-    return comp
+
+@component
+def noprop_once[R](comp: Component[R]) -> ComponentGen[R]:
+    """Prevents 'key' from being passed down to components wrapped by this
+    function only for the next build.
+
+    Args:
+        comp: A valid component
+
+    Returns:
+        A component.
+    """
+
+    yield Signal.NOPROP
+    yield comp
+    yield Signal.POLLINPUT
+    yield comp
+    yield Signal.POLLINPUT
+    while True:
+        yield Signal.NOCHANGE
 
 
 @overload
@@ -346,30 +360,20 @@ def tabview[R](
     controller = controller or TabController(tab=0)
 
     last_tab = controller.tab
-    tab_idx = controller.tab
-    refresh = False
-
-    def _poll(*_: Any) -> bool:
-        nonlocal refresh
-
-        refresh = controller.refresh
-        change = refresh or last_tab != tab_idx
-        controller.refresh = False
-
-        return change
-
     while True:
+        tab_idx = controller.tab
+
         yield heading(ShelfView(tabs, 0), tab_idx)
 
-        if last_tab != tab_idx:
-            yield Signal.NOPROP
-
-        yield tabs[tab_idx][1]
-        yield from pollcond(commands, _poll, controller, tabs)
+        tab_comp = tabs[tab_idx][1]
+        yield (
+            noprop_once(tab_comp)
+            if last_tab != tab_idx and isinstance(tab_comp, Component)
+            else tab_comp
+        )
+        yield from pollrefresh(commands, controller, tabs)
 
         last_tab = tab_idx
-        if refresh:
-            tab_idx = controller.tab
 
 
 def tabviewn[R](

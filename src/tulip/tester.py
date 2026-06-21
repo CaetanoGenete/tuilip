@@ -1,15 +1,17 @@
 from contextlib import contextmanager
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 import os
 from pathlib import Path
+import random
 import re
-from typing import Any, Generator, Iterator
+from typing import Any, Generator, Iterator, Never
 from xml.etree.ElementTree import Element, ElementTree
 
-from tulip.components.types import Component
+from tulip.components import component
+from tulip.components.types import Component, ComponentGen
 from tulip.input.keys import Key
 from tulip.render import render_it, resolve_indent
-from tulip.render.types import Text
+from tulip.render.types import Signal, Text
 
 
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"
@@ -142,7 +144,8 @@ class ComponentTester[R]:
 
     @contextmanager
     def record(self, out: str | Path, *, compare: bool) -> Generator[None, None, None]:
-        """Within the context manager, writes all rendered frames to `out`.
+        """Within the context manager, writes all rendered frames to `out` (including
+        the currently visible frame).
 
         Args:
             out: A path like object to a file.
@@ -173,3 +176,42 @@ class ComponentTester[R]:
                     assert key is not None
 
                     f.write(f"{SNAPSHOT_FRAME_DELIM % key.name}{frame.rendered}")
+
+
+@dataclass(slots=True)
+class MockCompState:
+    id: str = field(default_factory=lambda: str(random.randint(0, (1 << 63) - 1)))
+    builds: int = 0
+    key: Key = Key.NULL
+
+
+DEFAULT_MOCK_TEMPLATE = """\
+id: {id}
+buildno: {builds}
+key: {key.name}"""
+
+
+@component
+def mock_comp(
+    state: MockCompState | None = None,
+    *,
+    template: str = DEFAULT_MOCK_TEMPLATE,
+    id: str | None = None,
+) -> ComponentGen[Never]:
+    """Measured component object.
+
+        Stores
+
+        Args:
+            state: State struct.
+            template: f-string template for component to render, args are `state`'s fields.
+            id: Optional state.id override
+    e"""
+    state = state or MockCompState()
+    if id is not None:
+        state.id = id
+
+    while True:
+        yield template.format(**asdict(state))
+        state.key = Key((yield Signal.POLLINPUT))
+        state.builds += 1
