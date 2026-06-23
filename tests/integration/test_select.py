@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 import pytest
 
 from more_itertools import one
@@ -131,3 +132,44 @@ def test_page_indicator(snapshot_path: Path, nitems: int) -> None:
         controller.index = nitems - 1
         controller.refresh = True
         tester.next(Key.NULL)
+
+
+@pytest.mark.parametrize("index", [0, 4, 9, 10],)
+def test_enter_select_item(index: int) -> None:
+    """Test select given index on <ENTER>."""
+
+    controller = SelectController(0)
+    tester = ComponentTester(
+        select(
+            [f"item - {i}" for i in range(11)],
+            items_per_page=10,
+            controller=controller,
+        ),
+    )
+
+    controller.index = index
+    tester.next(Key.NULL)
+    tester.next(Key.CR)
+
+    assert tester.done and tester.ret == index
+
+
+def test_command_select_item() -> None:
+    """Test select given index on command return True."""
+
+    index = 3
+
+    def _select(controller: SelectController, *_: Any) -> bool:
+        controller.index = index
+        return True
+
+    tester = ComponentTester(
+        select(
+            [f"item - {i}" for i in range(11)],
+            items_per_page=10,
+            commands={Key.ASTERISK: _select}
+        ),
+    )
+
+    tester.next(Key.ASTERISK)
+    assert tester.done and tester.ret == index
