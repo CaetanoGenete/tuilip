@@ -156,7 +156,7 @@ class ComponentTester[R]:
             yield
 
             if compare and os.path.isfile(out):
-                with open(out, "rt") as f:
+                with open(out, "rt", encoding="utf-8") as f:
                     expected = f.read()
 
                 for actual, expected in zip(
@@ -167,7 +167,7 @@ class ComponentTester[R]:
                     assert actual == expected
 
         finally:
-            with open(out, "wt") as f:
+            with open(out, "wt", encoding="utf-8") as f:
                 f.write(self.frames[0].rendered)
 
                 for frame in self.frames[1:]:

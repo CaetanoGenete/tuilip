@@ -126,6 +126,7 @@ def test_controller(snapshot_path: Path) -> None:
         # Tab change should have no effect unless refresh = True
         controller.tab = 1
         tester.next(Key.NULL)
+        assert not one(tester.find("./tabview")).rebuilt
 
         tester.next(Key.RIGHT)
 
@@ -143,10 +144,9 @@ def test_no_rebuild(snapshot_path: Path) -> None:
 
     with tester.record(snapshot_path, compare=True):
         tester.next(Key.DOWN)
-
         assert not one(tester.find("./tabview")).rebuilt
 
         tester.next(Key.RIGHT)
-        tester.next(Key.DOWN)
 
+        tester.next(Key.DOWN)
         assert not one(tester.find("./tabview")).rebuilt
