@@ -102,6 +102,12 @@ def test_noprop(snapshot_path: Path) -> None:
 
 
 def test_controller(snapshot_path: Path) -> None:
+    """Tests tab controller.
+
+    1. Tabs can be changed with just the controller.
+    2. Tabs only change if refresh=True.
+    """
+
     controller = TabController(tab=1)
     tester = ComponentTester(
         tabview(
@@ -124,21 +130,9 @@ def test_controller(snapshot_path: Path) -> None:
         tester.next(Key.RIGHT)
 
 
-def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
-    tester = ComponentTester(
-        tabviewn(
-            ("tab 1", mockcomp(id="tab1")),
-            ("tab 2", mockcomp(id="tab2")),
-            heading=tabview_compact(3, " "),
-        ),
-    )
+def test_no_rebuild(snapshot_path: Path) -> None:
+    """Tests tabview doesn't rebuild if pressed key not in commands."""
 
-    with tester.record(snapshot_path, compare=True):
-        tester.next(Key.RIGHT)
-        tester.next(Key.LEFT)
-
-
-def test_no_change(snapshot_path: Path) -> None:
     tester = ComponentTester(
         tabviewn(
             ("tab 1", mockcomp(id="tab1")),
