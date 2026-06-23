@@ -5,7 +5,8 @@ from pathlib import Path
 import random
 import re
 from typing import Any, Generator, Iterator, Never
-from xml.etree.ElementTree import Element, ElementTree
+from xml.etree.ElementTree import Element
+from xml.etree.ElementPath import iterfind
 
 from tulip.components import component
 from tulip.components.types import Component, ComponentGen
@@ -106,8 +107,8 @@ class ComponentTester[R]:
         parent = Element(
             comp.debug_name,
             attrib={
-                "stateless": str(comp.stateless),
-                "indent": str(comp.indent),
+                "stateless": str(comp.stateless).lower(),
+                "indent": str(comp.indent).lower(),
                 "rebuilt": str(curr_id != prev_id),
             },
         )
@@ -128,19 +129,17 @@ class ComponentTester[R]:
 
         return parent
 
-    def find(self, xpath: str) -> ComponentQueryResult | None:
+    def find(self, xpath: str) -> Iterator[ComponentQueryResult]:
         root = Element("root")
         root.append(self._to_xml_element(self.comp))
-        result = ElementTree(root).find(xpath)
-        if result is None:
-            return None
 
-        return ComponentQueryResult(
-            debug_name=result.tag,
-            indent=int(result.attrib["indent"]),
-            stateless=result.attrib["stateless"].lower() == "true",
-            rebuilt=result.attrib["rebuilt"].lower() == "true",
-        )
+        for child in iterfind(root, xpath):
+            yield ComponentQueryResult(
+                debug_name=child.tag,
+                indent=int(child.attrib["indent"]),
+                stateless=child.attrib["stateless"] == "true",
+                rebuilt=child.attrib["rebuilt"] == "true",
+            )
 
     @contextmanager
     def record(self, out: str | Path, *, compare: bool) -> Generator[None, None, None]:
@@ -192,11 +191,11 @@ key: {key.name}"""
 
 
 @component
-def mock_comp(
+def mockcomp(
     state: MockCompState | None = None,
     *,
     template: str = DEFAULT_MOCK_TEMPLATE,
-    id: str | None = None,
+    id: str = "",
 ) -> ComponentGen[Never]:
     """Measured component object.
 
@@ -208,8 +207,7 @@ def mock_comp(
             id: Optional state.id override
     e"""
     state = state or MockCompState()
-    if id is not None:
-        state.id = id
+    state.id = id or state.id or str(random.randint(0, 1 << 32))
 
     while True:
         yield template.format(**asdict(state))

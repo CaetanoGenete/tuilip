@@ -154,8 +154,8 @@ def padding[R](
     This is a right translation of the entire component (and its descendants), relative
     to its parent.
 
-    Indent may be negative, in which case the translation is now `-indent` units to the
-    left, relative to the parent. However note that _total_ (i.e. the sum of all
+    Indent may be negative, in which case the translation becomes `-indent` units to the
+    left, relative to the parent. However, note that _total indent_ (i.e. the sum of all
     ancestor indents) is restricted to be non-negative (i.e. >= 0).
 
     Args:
@@ -426,7 +426,7 @@ def seqn[R](
     *comps: Renderable[R],
     sep: Renderable[R] = "",
 ) -> Component[R]:
-    """Variadic interface for `seq`
+    """Variadic interface for `seq`.
 
     Args:
         comps: The components to layout.

@@ -1,4 +1,5 @@
 from dataclasses import replace
+from more_itertools import one
 from itertools import repeat
 from pathlib import Path
 
@@ -9,8 +10,9 @@ from tulip.components import (
     tabview_compact,
     tabviewn,
 )
+from tulip.functional import atend
 from tulip.input.keys import Key
-from tulip.tester import ComponentTester, MockCompState, mock_comp
+from tulip.tester import ComponentTester, MockCompState, mockcomp
 
 
 def test_compact(snapshot_path: Path) -> None:
@@ -49,44 +51,51 @@ def test_with_interactible_tab(snapshot_path: Path) -> None:
     )
 
     with tester.record(snapshot_path, compare=True):
-        assert tester.find(".//select") is None
+        assert atend(tester.find(".//select"))
         tester.next(Key.RIGHT)
-        assert tester.find(".//select") is not None
+        assert not atend(tester.find(".//select"))
         tester.next(Key.DOWN)
-        assert tester.find(".//select") is not None
+        assert not atend(tester.find(".//select"))
 
 
-def test_noyield(snapshot_path: Path) -> None:
+def test_noprop(snapshot_path: Path) -> None:
+    """Tests tabview blocks key propogating on tab change."""
+
     tab1 = MockCompState(id="tab1")
     tab2 = MockCompState(id="tab2")
 
     tester = ComponentTester(
         tabviewn(
-            ("tab 1", mock_comp(tab1)),
-            ("tab 2", mock_comp(tab2)),
+            ("tab 1", mockcomp(tab1)),
+            ("tab 2", mockcomp(tab2)),
         ),
     )
 
     with tester.record(snapshot_path, compare=True):
+        # Check key still propogates if overflowing to the left.
         tester.next(Key.LEFT)
         assert tab1.key == Key.LEFT
 
         last_tab1_state = replace(tab1)
 
+        # Check no-prop if tab change from left->right.
         tester.next(Key.RIGHT)
         assert tab1 == last_tab1_state
         assert tab2.key == Key.NULL
 
+        # Check key still propogates if overflowing to the right.
         tester.next(Key.RIGHT)
         assert tab1 == last_tab1_state
         assert tab2.key == Key.RIGHT
 
         last_tab2_state = replace(tab2)
 
+        # Check no-prop if tab change from rigth->left.
         tester.next(Key.LEFT)
         assert tab1.key == Key.NULL
         assert tab2 == last_tab2_state
 
+        # Check initial behaviour hasn't changed.
         tester.next(Key.LEFT)
         assert tab1.key == Key.LEFT
         assert tab2 == last_tab2_state
@@ -118,8 +127,8 @@ def test_controller(snapshot_path: Path) -> None:
 def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
     tester = ComponentTester(
         tabviewn(
-            ("tab 1", mock_comp(id="tab1")),
-            ("tab 2", mock_comp(id="tab2")),
+            ("tab 1", mockcomp(id="tab1")),
+            ("tab 2", mockcomp(id="tab2")),
             heading=tabview_compact(3, " "),
         ),
     )
@@ -132,8 +141,8 @@ def test_no_rebuild_on_page_change(snapshot_path: Path) -> None:
 def test_no_change(snapshot_path: Path) -> None:
     tester = ComponentTester(
         tabviewn(
-            ("tab 1", mock_comp(id="tab1")),
-            ("tab 2", mock_comp(id="tab2")),
+            ("tab 1", mockcomp(id="tab1")),
+            ("tab 2", mockcomp(id="tab2")),
             heading=tabview_compact(3, " "),
         ),
     )
@@ -141,11 +150,9 @@ def test_no_change(snapshot_path: Path) -> None:
     with tester.record(snapshot_path, compare=True):
         tester.next(Key.DOWN)
 
-        assert (comp := tester.find("./tabview"))
-        assert not comp.rebuilt
+        assert not one(tester.find("./tabview")).rebuilt
 
         tester.next(Key.RIGHT)
         tester.next(Key.DOWN)
 
-        assert (comp := tester.find("./tabview"))
-        assert not comp.rebuilt
+        assert not one(tester.find("./tabview")).rebuilt

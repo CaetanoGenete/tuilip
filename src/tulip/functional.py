@@ -1,4 +1,4 @@
-from typing import Any, Callable
+from typing import Any, Callable, Iterator
 
 
 def rpadfn[*Ts, R](fn: Callable[[*Ts], R]) -> Callable[[*tuple[*Ts, Any]], R]:
@@ -12,3 +12,19 @@ def rpadfn[*Ts, R](fn: Callable[[*Ts], R]) -> Callable[[*tuple[*Ts, Any]], R]:
         return fn(*args[:-1])
 
     return wrapper
+
+
+def atend(iterator: Iterator[Any]) -> bool:
+    """Checks iterator is at end. Advances iterator.
+
+    Args:
+        iterator: An iterator
+
+    Returns:
+        True if at end, otherwise False.
+    """
+    try:
+        next(iterator)
+        return False
+    except StopIteration:
+        return True
