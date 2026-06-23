@@ -134,7 +134,10 @@ def test_page_indicator(snapshot_path: Path, nitems: int) -> None:
         tester.next(Key.NULL)
 
 
-@pytest.mark.parametrize("index", [0, 4, 9, 10],)
+@pytest.mark.parametrize(
+    "index",
+    [0, 4, 9, 10],
+)
 def test_enter_select_item(index: int) -> None:
     """Test select given index on <ENTER>."""
 
@@ -167,7 +170,7 @@ def test_command_select_item() -> None:
         select(
             [f"item - {i}" for i in range(11)],
             items_per_page=10,
-            commands={Key.ASTERISK: _select}
+            commands={Key.ASTERISK: _select},
         ),
     )
 
