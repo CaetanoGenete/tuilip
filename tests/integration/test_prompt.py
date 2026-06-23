@@ -5,6 +5,7 @@ from tulip.components import PromptController, prompt
 from tulip.input.keys import Key
 from tulip.tester import ComponentTester
 
+
 _TEST_MOVE_CURSOR_PROMPT = "A test string or something..."
 
 
