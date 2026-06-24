@@ -207,7 +207,7 @@ def mockcomp(
             id: Optional state.id override
     e"""
     state = state or MockCompState()
-    state.id = id or state.id or str(random.randint(0, 1 << 32))
+    state.id = id or state.id
 
     while True:
         yield template.format(**asdict(state))
