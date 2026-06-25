@@ -3,16 +3,16 @@ from more_itertools import one
 from itertools import repeat
 from pathlib import Path
 
-from tulip.components import (
+from tuilip.components import (
     TabController,
     select,
     tabview,
     tabview_compact,
     tabviewn,
 )
-from tulip.functional import atend
-from tulip.input.keys import Key
-from tulip.tester import ComponentTester, MockCompState, mockcomp
+from tuilip.functional import atend
+from tuilip.input.keys import Key
+from tuilip.tester import ComponentTester, MockCompState, mockcomp
 
 
 def test_compact(snapshot_path: Path) -> None:

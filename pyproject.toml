@@ -1,5 +1,5 @@
 [project]
-name = "tulip"
+name = "tuilip"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -33,8 +33,8 @@ reportUnnecessaryTypeIgnoreComment = true
 exclude = [
 	".venv",
 	"**/__pycache__",
-    "src/tulip/input/win32.py",
-    "src/tulip/input/posix.py"
+    "src/tuilip/input/win32.py",
+    "src/tuilip/input/posix.py"
 ]
 
 [tool.ruff.lint]

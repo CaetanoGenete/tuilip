@@ -1,10 +1,10 @@
 from typing import Never
 
-from tulip.components.types import Component
-from tulip.input import DefaultInputHandler
-from tulip.input.types import InputHandler
-from tulip.render import TextView, render
-from tulip.render.types import CompNode, Text
+from tuilip.components.types import Component
+from tuilip.input import DefaultInputHandler
+from tuilip.input.types import InputHandler
+from tuilip.render import TextView, render
+from tuilip.render.types import CompNode, Text
 
 
 def loop[R](

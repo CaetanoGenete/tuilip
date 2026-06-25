@@ -2,11 +2,11 @@ from dataclasses import dataclass, field
 from enum import IntEnum
 from typing import TYPE_CHECKING, Self, override
 
-from tulip.math import divup
-from tulip.string import rto
+from tuilip.math import divup
+from tuilip.string import rto
 
 if TYPE_CHECKING:
-    from tulip.components.types import Component
+    from tuilip.components.types import Component
 
 
 class Signal(IntEnum):

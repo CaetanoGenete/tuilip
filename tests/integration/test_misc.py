@@ -1,8 +1,8 @@
 import pytest
-from tulip.components import component
-from tulip.components.types import ComponentGen
-from tulip.render import render
-from tulip.render.exceptions import TooManyChildrenException
+from tuilip.components import component
+from tuilip.components.types import ComponentGen
+from tuilip.render import render
+from tuilip.render.exceptions import TooManyChildrenException
 
 
 @component

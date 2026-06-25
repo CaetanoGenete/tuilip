@@ -1,10 +1,10 @@
 from typing import assert_type
 
-from tulip.components import echo_key, prompt, select, selectn, tabview_fixed, tabviewn
-from tulip.render.rich import loop
-from tulip.render.types import Text
-from tulip.string import Justify
-from tulip.views import LazySeq
+from tuilip.components import echo_key, prompt, select, selectn, tabview_fixed, tabviewn
+from tuilip.render.rich import loop
+from tuilip.render.types import Text
+from tuilip.string import Justify
+from tuilip.views import LazySeq
 
 try:
     result = loop(

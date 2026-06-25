@@ -2,8 +2,8 @@ from contextlib import nullcontext
 import msvcrt
 from typing import ContextManager, final
 
-from tulip.input.types import InputHandler
-from tulip.input.keys import Key
+from tuilip.input.types import InputHandler
+from tuilip.input.keys import Key
 
 
 @final

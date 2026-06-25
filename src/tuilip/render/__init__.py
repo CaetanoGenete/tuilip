@@ -4,9 +4,9 @@ from typing import Generator, Iterable, Iterator, Reversible, cast
 
 from collections.abc import Callable
 
-from tulip.components.types import Component
-from tulip.render.exceptions import TooManyChildrenException
-from tulip.render.types import CompNode, Signal, Span, Text
+from tuilip.components.types import Component
+from tuilip.render.exceptions import TooManyChildrenException
+from tuilip.render.types import CompNode, Signal, Span, Text
 
 
 @dataclass(slots=True)

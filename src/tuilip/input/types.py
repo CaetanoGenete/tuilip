@@ -5,12 +5,12 @@ from typing import ContextManager, Protocol
 class InputHandler(Protocol):
     @abstractmethod
     def read(self) -> int:
-        """Reads a single tulip key.
+        """Reads a single tuilip key.
 
         The implementation may choose the source arbitrarily, or mock if needed.
 
         Returns:
-            A tulip key-code. See tulip.input.keys
+            A tuilip key-code. See tuilip.input.keys
         """
 
     @abstractmethod

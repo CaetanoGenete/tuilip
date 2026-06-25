@@ -1,8 +1,8 @@
 from typing import assert_type
 
-from tulip.components import prompt
-from tulip.render.rich import loop
-from tulip.render.types import Text
+from tuilip.components import prompt
+from tuilip.render.rich import loop
+from tuilip.render.types import Text
 
 try:
     result = loop(

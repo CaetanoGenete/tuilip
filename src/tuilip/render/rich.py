@@ -7,11 +7,11 @@ except ImportError as e:
 from rich.console import Console
 from rich.theme import Theme
 
-from tulip.components.types import Component
-from tulip.input.types import InputHandler
-from tulip.input import DefaultInputHandler
-from tulip.render import TextView, render, resolve_indent
-from tulip.render.types import Text
+from tuilip.components.types import Component
+from tuilip.input.types import InputHandler
+from tuilip.input import DefaultInputHandler
+from tuilip.render import TextView, render, resolve_indent
+from tuilip.render.types import Text
 
 DEFAULT_THEME = Theme(
     {

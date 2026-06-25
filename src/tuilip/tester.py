@@ -8,11 +8,11 @@ from typing import Any, Generator, Iterator, Never
 from xml.etree.ElementTree import Element
 from xml.etree.ElementPath import iterfind
 
-from tulip.components import component
-from tulip.components.types import Component, ComponentGen
-from tulip.input.keys import Key
-from tulip.render import render_it, resolve_indent
-from tulip.render.types import Signal, Text
+from tuilip.components import component
+from tuilip.components.types import Component, ComponentGen
+from tuilip.input.keys import Key
+from tuilip.render import render_it, resolve_indent
+from tuilip.render.types import Signal, Text
 
 
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"

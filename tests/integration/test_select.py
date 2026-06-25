@@ -4,9 +4,9 @@ import pytest
 
 from more_itertools import one
 
-from tulip.input.keys import Key
-from tulip.tester import ComponentTester
-from tulip.components import SELECT_MAX_BULLETS, SelectController, select
+from tuilip.input.keys import Key
+from tuilip.tester import ComponentTester
+from tuilip.components import SELECT_MAX_BULLETS, SelectController, select
 
 
 @pytest.mark.parametrize("nitems", [1, 5, 10, 11, 21])

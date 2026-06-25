@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic, TypeVar
 
 if TYPE_CHECKING:
-    from tulip.render.types import CompNode, Signal, TextLike
+    from tuilip.render.types import CompNode, Signal, TextLike
 
 
 type Renderable[R] = "Component[R] | TextLike"

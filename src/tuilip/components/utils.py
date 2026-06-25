@@ -1,7 +1,7 @@
 from collections.abc import Generator, Mapping
 from typing import Callable, Concatenate, NamedTuple, Protocol
 
-from tulip.render.types import Signal
+from tuilip.render.types import Signal
 
 
 class PollResult(NamedTuple):
@@ -68,7 +68,7 @@ def pollrefresh[**P, C: RefreshableController](
     *args: P.args,
     **kwargs: P.kwargs,
 ) -> Generator[Signal | None, int, PollResult]:
-    """Component snippet for typical tulip polling.
+    """Component snippet for typical tuilip polling.
 
     Polls for condition `controller.refresh = True` and truthy return from `commands`.
 

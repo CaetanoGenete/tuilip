@@ -3,18 +3,18 @@ from dataclasses import dataclass
 from functools import partial, wraps
 from typing import Any, Callable, Iterable, Literal, Never, Unpack, overload
 
-from tulip.components.types import (
+from tuilip.components.types import (
     Component,
     ComponentGen,
     Renderable,
 )
-from tulip.components.utils import pollrefresh
-from tulip.functional import rpadfn
-from tulip.input.keys import Key
-from tulip.math import divup
-from tulip.render.types import Signal, Text, TextLike
-from tulip.string import Justify, just
-from tulip.views import MapView, ShelfView
+from tuilip.components.utils import pollrefresh
+from tuilip.functional import rpadfn
+from tuilip.input.keys import Key
+from tuilip.math import divup
+from tuilip.render.types import Signal, Text, TextLike
+from tuilip.string import Justify, just
+from tuilip.views import MapView, ShelfView
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
 type ComponentGenFactory[**P, R] = Callable[P, ComponentGen[R]]
@@ -60,13 +60,13 @@ def component[**P, R](
     ComponentFactory[P, R]
     | Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]
 ):
-    """Converts a generator into a tulip Component.
+    """Converts a generator into a tuilip Component.
 
     Args:
         fn: The build function
         stateless: If true, component is only built once.
         debug_name: The name of the component as it appears in logs and error messages. Defaults to the function name.
-        indent: Offsets (to the right) the component by `indent`. See `tulip.components:padding` for more details.
+        indent: Offsets (to the right) the component by `indent`. See `tuilip.components:padding` for more details.
 
     Returns:
         A Tuilip component.

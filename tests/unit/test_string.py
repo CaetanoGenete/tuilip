@@ -4,8 +4,8 @@ from typing import Any, Literal, assert_type
 import pytest
 from rich.text import Text as RichText
 
-from tulip.render.types import Text
-from tulip.string import lto, rto
+from tuilip.render.types import Text
+from tuilip.string import lto, rto
 
 
 @dataclass

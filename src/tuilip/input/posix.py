@@ -4,8 +4,8 @@ import sys
 from typing import IO, Any, ContextManager, Generator, final, override
 import termios
 
-from tulip.input.types import InputHandler
-from tulip.input.keys import Key, escape_code_map
+from tuilip.input.types import InputHandler
+from tuilip.input.keys import Key, escape_code_map
 
 C_IFLAG = 0
 C_LFLAG = 3

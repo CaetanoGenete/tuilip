@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 import pytest
 
-from tulip.render.types import Span, Text
+from tuilip.render.types import Span, Text
 
 
 @dataclass
