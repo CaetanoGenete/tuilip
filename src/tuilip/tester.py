@@ -12,6 +12,7 @@ from tuilip.components import component
 from tuilip.components.types import Component, ComponentGen
 from tuilip.input.keys import Key
 from tuilip.render import render_it, resolve_indent
+from tuilip.render.std import DEFAULT_THEME, render_styles
 from tuilip.render.types import Signal, Text
 
 
@@ -96,7 +97,7 @@ class ComponentTester[R]:
             else:
                 frame = TestFrame(
                     key=key,
-                    rendered="".join(span.value for span in resolve_indent(screen)),
+                    rendered=render_styles(resolve_indent(screen), DEFAULT_THEME),
                 )
                 self.frames.append(frame)
 

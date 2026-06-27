@@ -1,39 +1,39 @@
-< tab 1 tab 2 >
-id: tab1
+[2m<[0m [0m[31mtab 1[0m [0m[34mtab 2[0m [0m[2m>[0m
+[0mid: tab1
 buildno: 0
-key: NULL
+key: NULL[0m
 
 ;;; key: LEFT ;;;
 
-< tab 1 tab 2 >
-id: tab1
+[2m<[0m [0m[31mtab 1[0m [0m[34mtab 2[0m [0m[2m>[0m
+[0mid: tab1
 buildno: 1
-key: LEFT
+key: LEFT[0m
 
 ;;; key: RIGHT ;;;
 
-< tab 1 tab 2 >
-id: tab2
+[2m<[0m [0m[34mtab 1[0m [0m[31mtab 2[0m [0m[2m>[0m
+[0mid: tab2
 buildno: 0
-key: NULL
+key: NULL[0m
 
 ;;; key: RIGHT ;;;
 
-< tab 1 tab 2 >
-id: tab2
+[2m<[0m [0m[34mtab 1[0m [0m[31mtab 2[0m [0m[2m>[0m
+[0mid: tab2
 buildno: 1
-key: RIGHT
+key: RIGHT[0m
 
 ;;; key: LEFT ;;;
 
-< tab 1 tab 2 >
-id: tab1
+[2m<[0m [0m[31mtab 1[0m [0m[34mtab 2[0m [0m[2m>[0m
+[0mid: tab1
 buildno: 2
-key: NULL
+key: NULL[0m
 
 ;;; key: LEFT ;;;
 
-< tab 1 tab 2 >
-id: tab1
+[2m<[0m [0m[31mtab 1[0m [0m[34mtab 2[0m [0m[2m>[0m
+[0mid: tab1
 buildno: 3
-key: LEFT
+key: LEFT[0m
