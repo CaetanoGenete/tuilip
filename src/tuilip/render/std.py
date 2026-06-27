@@ -23,66 +23,70 @@ DEFAULT_THEME = {
 
 ANSI_MAP = {
     # --- Styles & Formatting ---
-    "reset": "\x1b[0m",
-    "bold": "\x1b[1m",
-    "dim": "\x1b[2m",
-    "italic": "\x1b[3m",
-    "underline": "\x1b[4m",
-    "blink_slow": "\x1b[5m",
-    "blink_rapid": "\x1b[6m",
-    "reverse": "\x1b[7m",
-    "hidden": "\x1b[8m",
-    "strikethrough": "\x1b[9m",
+    "reset": "0",
+    "bold": "1",
+    "dim": "2",
+    "italic": "3",
+    "underline": "4",
+    "blink_slow": "5",
+    "blink_rapid": "6",
+    "reverse": "7",
+    "hidden": "8",
+    "strikethrough": "9",
     # --- Standard Foreground Colors ---
-    "black": "\x1b[30m",
-    "red": "\x1b[31m",
-    "green": "\x1b[32m",
-    "yellow": "\x1b[33m",
-    "blue": "\x1b[34m",
-    "magenta": "\x1b[35m",
-    "cyan": "\x1b[36m",
-    "white": "\x1b[37m",
+    "black": "30",
+    "red": "31",
+    "green": "32",
+    "yellow": "33",
+    "blue": "34",
+    "magenta": "35",
+    "cyan": "36",
+    "white": "37",
     # --- Standard Background Colors ---
-    "bblack": "\x1b[40m",
-    "bred": "\x1b[41m",
-    "bgreen": "\x1b[42m",
-    "byellow": "\x1b[43m",
-    "bblue": "\x1b[44m",
-    "bmagenta": "\x1b[45m",
-    "bcyan": "\x1b[46m",
-    "bwhite": "\x1b[47m",
+    "bblack": "40",
+    "bred": "41",
+    "bgreen": "42",
+    "byellow": "43",
+    "bblue": "44",
+    "bmagenta": "45",
+    "bcyan": "46",
+    "bwhite": "47",
     # --- Bright/High-Intensity Foreground Colors ---
-    "bright_black": "\x1b[90m",
-    "bright_red": "\x1b[91m",
-    "bright_green": "\x1b[92m",
-    "bright_yellow": "\x1b[93m",
-    "bright_blue": "\x1b[94m",
-    "bright_magenta": "\x1b[95m",
-    "bright_cyan": "\x1b[96m",
-    "bright_white": "\x1b[97m",
+    "bright_black": "90",
+    "bright_red": "91",
+    "bright_green": "92",
+    "bright_yellow": "93",
+    "bright_blue": "94",
+    "bright_magenta": "95",
+    "bright_cyan": "96",
+    "bright_white": "97",
     # --- Bright/High-Intensity Background Colors ---
-    "bbright_black": "\x1b[100m",
-    "bbright_red": "\x1b[101m",
-    "bbright_green": "\x1b[102m",
-    "bbright_yellow": "\x1b[103m",
-    "bbright_blue": "\x1b[104m",
-    "bbright_magenta": "\x1b[105m",
-    "bbright_cyan": "\x1b[106m",
-    "bbright_white": "\x1b[107m",
+    "bbright_black": "100",
+    "bbright_red": "101",
+    "bbright_green": "102",
+    "bbright_yellow": "103",
+    "bbright_blue": "104",
+    "bbright_magenta": "105",
+    "bbright_cyan": "106",
+    "bbright_white": "107",
 }
 
 
 def render_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
-    result = ""
-    for span in spanit:
-        result += "".join(
-            ANSI_MAP[style]
-            for style in theme.get(span.style, span.style).split(" ")
-            if style
-        )
-        result += f"{span.value}\x1b[0m"
-
-    return result
+    return "".join(
+        [
+            f"\x1b[{
+                ';'.join(
+                    ANSI_MAP[style]
+                    for style in theme.get(span.style, span.style).split(' ')
+                    if style
+                )
+            }m{span.value}\x1b[0m"
+            if span.style
+            else span.value
+            for span in spanit
+        ]
+    )
 
 
 def clear_lines(nlines: int) -> str:

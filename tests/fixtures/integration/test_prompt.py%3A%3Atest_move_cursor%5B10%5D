@@ -1,5 +1,5 @@
-[0m[30m[47mA[0m test string or something...[0m
+[30;47mA[0m test string or something...
 
 ;;; key: NULL ;;;
 
-A test str[0m[30m[47mi[0mng or something...[0m
+A test str[30;47mi[0mng or something...

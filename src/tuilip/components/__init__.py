@@ -113,7 +113,7 @@ def noprop[R](comp: Component[R]) -> ComponentGen[R]:
 @component
 def noprop_once[R](comp: Component[R]) -> ComponentGen[R]:
     """Prevents 'key' from being passed down to components wrapped by this
-    function only for the next build.
+    function only until the next build.
 
     Args:
         comp: A valid component

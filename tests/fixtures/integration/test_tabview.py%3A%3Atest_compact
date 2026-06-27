@@ -1,32 +1,32 @@
-[2m<[0m [0m[31mtab 0[0m [0m[34mtab 1[0m [0m[34mtab 2[0m [0m>[0m
-[0mContent for tab: tab 0[0m
+[2m<[0m [31mtab 0[0m [34mtab 1[0m [34mtab 2[0m [m>[0m
+Content for tab: tab 0
 
 ;;; key: LEFT ;;;
 
-[2m<[0m [0m[31mtab 0[0m [0m[34mtab 1[0m [0m[34mtab 2[0m [0m>[0m
-[0mContent for tab: tab 0[0m
+[2m<[0m [31mtab 0[0m [34mtab 1[0m [34mtab 2[0m [m>[0m
+Content for tab: tab 0
 
 ;;; key: RIGHT ;;;
 
-[2m<[0m [0m[34mtab 0[0m [0m[31mtab 1[0m [0m[34mtab 2[0m [0m>[0m
-[0mContent for tab: tab 1[0m
+[2m<[0m [34mtab 0[0m [31mtab 1[0m [34mtab 2[0m [m>[0m
+Content for tab: tab 1
 
 ;;; key: RIGHT ;;;
 
-[2m<[0m [0m[34mtab 0[0m [0m[34mtab 1[0m [0m[31mtab 2[0m [0m>[0m
-[0mContent for tab: tab 2[0m
+[2m<[0m [34mtab 0[0m [34mtab 1[0m [31mtab 2[0m [m>[0m
+Content for tab: tab 2
 
 ;;; key: RIGHT ;;;
 
-<[0m [0m[31mtab 3[0m [0m[2m>[0m
-[0mContent for tab: tab 3[0m
+[m<[0m [31mtab 3[0m [2m>[0m
+Content for tab: tab 3
 
 ;;; key: RIGHT ;;;
 
-<[0m [0m[31mtab 3[0m [0m[2m>[0m
-[0mContent for tab: tab 3[0m
+[m<[0m [31mtab 3[0m [2m>[0m
+Content for tab: tab 3
 
 ;;; key: LEFT ;;;
 
-[2m<[0m [0m[34mtab 0[0m [0m[34mtab 1[0m [0m[31mtab 2[0m [0m>[0m
-[0mContent for tab: tab 2[0m
+[2m<[0m [34mtab 0[0m [34mtab 1[0m [31mtab 2[0m [m>[0m
+Content for tab: tab 2
