@@ -9,7 +9,6 @@ from tuilip.tester import ComponentTester
 _TEST_MOVE_CURSOR_PROMPT = "A test string or something..."
 
 
-@pytest.mark.skip("Test renderer does not support ANSI yet...")
 @pytest.mark.parametrize(
     "pos",
     [

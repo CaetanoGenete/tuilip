@@ -1,11 +1,10 @@
 try:
     from rich.live import Live
     from rich.text import Text as RichText
+    from rich.console import Console
+    from rich.theme import Theme
 except ImportError as e:
     raise Exception("Cannot use Rich backend; rich is not installed!") from e
-
-from rich.console import Console
-from rich.theme import Theme
 
 from tuilip.components.types import Component
 from tuilip.input.types import InputHandler

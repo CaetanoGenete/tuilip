@@ -1,7 +1,7 @@
 from typing import assert_type
 
 from tuilip.components import echo_key, prompt, select, selectn, tabview_fixed, tabviewn
-from tuilip.render.rich import loop
+from tuilip.render.std import loop
 from tuilip.render.types import Text
 from tuilip.string import Justify
 from tuilip.views import LazySeq
