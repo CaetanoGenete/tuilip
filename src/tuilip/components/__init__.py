@@ -24,7 +24,7 @@ type ComponentGenFactory[**P, R] = Callable[P, ComponentGen[R]]
 def component[**P, R](
     fn: None = ...,
     *,
-    stateless: Literal[False],
+    noreturn: Literal[False],
     debug_name: str = ...,
     indent: int = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]: ...
@@ -34,7 +34,7 @@ def component[**P, R](
 def component[**P, R](
     fn: None = ...,
     *,
-    stateless: Literal[True],
+    noreturn: Literal[True],
     debug_name: str = ...,
     indent: int = ...,
 ) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, Never]]: ...
@@ -44,7 +44,7 @@ def component[**P, R](
 def component[**P, R](
     fn: ComponentGenFactory[P, R],
     *,
-    stateless: bool = ...,
+    noreturn: bool = ...,
     debug_name: str = ...,
     indent: int = ...,
 ) -> ComponentFactory[P, R]: ...
@@ -53,7 +53,7 @@ def component[**P, R](
 def component[**P, R](
     fn: ComponentGenFactory[P, R] | None = None,
     *,
-    stateless: bool = False,
+    noreturn: bool = False,
     debug_name: str = "",
     indent: int = 0,
 ) -> (
@@ -64,7 +64,7 @@ def component[**P, R](
 
     Args:
         fn: The build function
-        stateless: If true, component is only built once.
+        noreturn: If true, last build is re-used once generator closes.
         debug_name: The name of the component as it appears in logs and error messages. Defaults to the function name.
         indent: Offsets (to the right) the component by `indent`. See `tuilip.components:padding` for more details.
 
@@ -74,7 +74,7 @@ def component[**P, R](
     if fn is None:
         return partial(
             component,
-            stateless=stateless,
+            noreturn=noreturn,
             debug_name=debug_name,
             indent=indent,
         )
@@ -82,7 +82,7 @@ def component[**P, R](
     @wraps(fn)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> Component[R]:
         return Component(
-            stateless=stateless,
+            noreturn=noreturn,
             debug_name=debug_name or fn.__name__,
             gen=fn(*args, **kwargs),
             indent=indent,
@@ -94,7 +94,7 @@ def component[**P, R](
 type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | None]]
 
 
-@component(stateless=True)
+@component(noreturn=True)
 def noprop[R](comp: Component[R]) -> ComponentGen[R]:
     """Prevents 'key' from being passed down to components wrapped by this
     function.
@@ -110,7 +110,7 @@ def noprop[R](comp: Component[R]) -> ComponentGen[R]:
     yield comp
 
 
-@component
+@component(noreturn=True)
 def noprop_once[R](comp: Component[R]) -> ComponentGen[R]:
     """Prevents 'key' from being passed down to components wrapped by this
     function only until the next build.
@@ -126,9 +126,6 @@ def noprop_once[R](comp: Component[R]) -> ComponentGen[R]:
     yield comp
     yield Signal.POLLINPUT
     yield comp
-    yield Signal.POLLINPUT
-    while True:
-        yield Signal.NOCHANGE
 
 
 @overload
@@ -167,7 +164,7 @@ def padding[R](
         return comp
 
     @component(
-        stateless=True,
+        noreturn=True,
         debug_name="padding",
         indent=indent,
     )
@@ -394,7 +391,7 @@ def tabviewn[R](
     return tabview(tabs, heading=heading, controller=controller, commands=commands)
 
 
-@component(stateless=True)
+@component(noreturn=True)
 def seq[R](
     comps: Iterable[Renderable[R]],
     sep: Renderable[R] = "",

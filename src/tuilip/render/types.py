@@ -195,7 +195,7 @@ class CompNode[R]:
             if comp.indent != 0:
                 debug_name += f" indent={comp.indent}"
 
-            result += f"[{debug_name}]" if comp.stateless else f"<{debug_name}>"
+            result += f"[{debug_name}]" if comp.noreturn else f"<{debug_name}>"
 
             stack.extend((child, depth + 1) for child in reversed(curr.children))
 

@@ -84,6 +84,13 @@ def _wrap_cursor(cursor: int, promptlen: int) -> int:
             final_cursor=-1,
         ),
         _MoveCursorTestCase(
+            name="nextword from middle of last word, with space",
+            movefn=PromptController.nextword,
+            prompt="Some test string ",
+            init_cursor=-5,
+            final_cursor=-1,
+        ),
+        _MoveCursorTestCase(
             name="nextword from middle of penultimate word",
             movefn=PromptController.nextword,
             prompt="Some test string",

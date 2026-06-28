@@ -43,7 +43,7 @@ class TestFrame:
 @dataclass(slots=True)
 class ComponentQueryResult:
     debug_name: str
-    stateless: bool
+    noreturn: bool
     indent: int
     rebuilt: bool
 
@@ -108,7 +108,7 @@ class ComponentTester[R]:
         parent = Element(
             comp.debug_name,
             attrib={
-                "stateless": str(comp.stateless).lower(),
+                "noreturn": str(comp.noreturn).lower(),
                 "indent": str(comp.indent).lower(),
                 "rebuilt": str(curr_id != prev_id),
             },
@@ -138,7 +138,7 @@ class ComponentTester[R]:
             yield ComponentQueryResult(
                 debug_name=child.tag,
                 indent=int(child.attrib["indent"]),
-                stateless=child.attrib["stateless"] == "true",
+                noreturn=child.attrib["noreturn"] == "true",
                 rebuilt=child.attrib["rebuilt"] == "true",
             )
 

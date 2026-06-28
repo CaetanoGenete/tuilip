@@ -16,7 +16,7 @@ R_co = TypeVar("R_co", covariant=True)
 
 @dataclass(slots=True)
 class Component(Generic[R_co]):
-    stateless: bool
+    noreturn: bool
     debug_name: str
     gen: ComponentGen[R_co]
     indent: int = 0

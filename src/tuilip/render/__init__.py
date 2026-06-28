@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from inspect import GEN_CREATED, getgeneratorstate
+from inspect import GEN_CLOSED, GEN_CREATED, getgeneratorstate
 from typing import Generator, Iterable, Iterator, Reversible, cast
 
 from collections.abc import Callable
@@ -52,8 +52,10 @@ def render_it[R](
             if comp.indent:
                 indent_stack.extend((indent + comp.indent, stacklen))
 
-            created = getgeneratorstate(comp.gen) is not GEN_CREATED
-            if comp.stateless and created:
+            genstate = getgeneratorstate(comp.gen)
+            created = genstate is not GEN_CREATED
+
+            if comp.noreturn and genstate is GEN_CLOSED:
                 assert comp.cache, "Component generator ran outside of loop!"
                 stack.extend(reversed(comp.cache.children))
                 continue
@@ -79,7 +81,7 @@ def render_it[R](
                         created = True
 
                 except StopIteration as e:
-                    if comp.stateless:
+                    if comp.noreturn:
                         break
                     return cast(R, e.value)
 
