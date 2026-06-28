@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from tuilip.render.types import Signal, TextLike, Text
@@ -16,9 +16,7 @@ type ComponentGen[R] = Generator[_ComponentYieldT[R], int, R]
 @dataclass(slots=True)
 class CompCache[R]:
     propkey: bool = True
-    children: list[Component[R] | Text] = field(
-        default_factory=list["Component[R] | Text"]
-    )
+    children: list[Component[R] | Text] = field(default_factory=list[Any])
 
 
 R_co = TypeVar("R_co", covariant=True)
