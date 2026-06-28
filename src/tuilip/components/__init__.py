@@ -95,36 +95,23 @@ type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | 
 
 
 @component(noreturn=True)
-def noprop[R](comp: Component[R]) -> ComponentGen[R]:
-    """Prevents 'key' from being passed down to components wrapped by this
-    function.
+def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen[R | None]:
+    """Prevents 'key' from being passed down to components wrapped by this function.
 
     Args:
         comp: A valid component
-        noprop: If `false`, this is a no-op.
-
-    Returns:
-        A component.
+        n: Prevent propogation for `n` builds, if `n == 0` prevent indefinitely,
     """
-    yield Signal.NOPROP
-    yield comp
+    assert n >= 0, "n must be non-negative"
 
+    for _ in range(n):
+        yield Signal.NOPROP
+        yield comp
+        yield Signal.POLLINPUT
 
-@component(noreturn=True)
-def noprop_once[R](comp: Component[R]) -> ComponentGen[R]:
-    """Prevents 'key' from being passed down to components wrapped by this
-    function until the next build.
+    if n == 0:
+        yield Signal.NOPROP
 
-    Args:
-        comp: A valid component
-
-    Returns:
-        A component.
-    """
-
-    yield Signal.NOPROP
-    yield comp
-    yield Signal.POLLINPUT
     yield comp
 
 
@@ -364,7 +351,7 @@ def tabview[R](
 
         tab_comp = tabs[tab_idx][1]
         yield (
-            noprop_once(tab_comp)
+            noprop(tab_comp, n=1)
             if last_tab != tab_idx and isinstance(tab_comp, Component)
             else tab_comp
         )

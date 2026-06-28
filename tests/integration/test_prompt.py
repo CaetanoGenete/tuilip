@@ -14,10 +14,7 @@ def _wrap_cursor(cursor: int, promptlen: int) -> int:
     return promptlen + 1 + cursor
 
 
-@pytest.mark.parametrize(
-    "pos",
-    [1, 10, -2, -1]
-)
+@pytest.mark.parametrize("pos", [1, 10, -2, -1])
 def test_set_cursor(snapshot_path: Path, pos: int) -> None:
     init_prompt = "A test string or something..."
 
