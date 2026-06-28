@@ -106,7 +106,8 @@ def loop[R](
     def onrefresh(screen: list[TextView]) -> int:
         nonlocal nlines
 
-        out.write(clear_lines(nlines))
+        if nlines:
+            out.write(clear_lines(nlines))
 
         rendered = render_styles(resolve_indent(screen), theme)
         out.write(rendered)

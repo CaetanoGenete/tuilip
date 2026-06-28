@@ -718,6 +718,10 @@ class PromptController:
             self.nextchar()
 
     def select(self) -> bool:
+        """Select the current prompt.
+
+        NOTE: Has no effect unless invoked as part of a `command`.
+        """
         return True
 
 
