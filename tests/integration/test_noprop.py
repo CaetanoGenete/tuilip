@@ -6,9 +6,8 @@ from tuilip.tester import ComponentTester, MockCompState, mockcomp
 
 
 @pytest.mark.parametrize("n", range(1, 10))
-def test_noprop_twice(n: int) -> None:
+def test_noprop_n(n: int) -> None:
     mockstate = MockCompState()
-
     tester = ComponentTester(noprop(mockcomp(mockstate), n=n))
 
     keyit = iter(Key)
@@ -25,7 +24,6 @@ def test_noprop_twice(n: int) -> None:
 
 def test_noprop_indefinitely() -> None:
     mockstate = MockCompState()
-
     tester = ComponentTester(noprop(mockcomp(mockstate), n=0))
 
     for key in Key:

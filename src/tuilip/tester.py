@@ -84,9 +84,9 @@ class ComponentTester[R]:
                         # On rebuild, children list is always recreated
                         self.__build_id[id(curr)] = id(cache.children)
                         stack.extend(
-                            node.comp
-                            for node in reversed(cache.children)
-                            if not isinstance(node.comp, Text)
+                            child
+                            for child in reversed(cache.children)
+                            if not isinstance(child, Text)
                         )
 
             try:
@@ -116,9 +116,7 @@ class ComponentTester[R]:
 
         if comp.cache:
             last: Element | None = None
-            for child_node in comp.cache.children:
-                child_comp = child_node.comp
-
+            for child_comp in comp.cache.children:
                 if isinstance(child_comp, Text):
                     if last is None:
                         parent.text = str(child_comp)

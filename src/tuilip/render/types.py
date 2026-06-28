@@ -3,7 +3,6 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Self, override
 
 from tuilip.math import divup
-from tuilip.string import rto
 
 if TYPE_CHECKING:
     from tuilip.components.types import Component
@@ -167,36 +166,10 @@ DEBUG_TRANS = str.maketrans({"\n": r"\n", '"': r"\""})
 
 @dataclass(slots=True)
 class CompNode[R]:
-    comp: "Component[R] | Text"
     propkey: bool = True
-    children: list[Self] = field(default_factory=list[Self])
+    children: "list[Component[R] | Text]" = field(default_factory=list["Component[R] | Text"])
 
     @override
     def __str__(self) -> str:
-        result = ""
+        raise NotImplementedError()
 
-        stack: list[tuple[CompNode[R], int]] = [(self, 0)]
-        while stack:
-            curr, depth = stack.pop()
-            comp = curr.comp
-
-            if depth > 0:
-                result += "\n"
-
-            result += " " * (depth * 2)
-            if isinstance(comp, Text):
-                result += f'"{rto(str(comp).translate(DEBUG_TRANS))}"'
-                continue
-
-            debug_name = f"{comp.debug_name}"
-            if not curr.propkey:
-                debug_name += " noprop"
-
-            if comp.indent != 0:
-                debug_name += f" indent={comp.indent}"
-
-            result += f"[{debug_name}]" if comp.noreturn else f"<{debug_name}>"
-
-            stack.extend((child, depth + 1) for child in reversed(curr.children))
-
-        return result

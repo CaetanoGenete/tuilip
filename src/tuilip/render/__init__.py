@@ -21,8 +21,6 @@ MAX_COMPONENT_CHILDREN = 1000
 def render_it[R](
     components: Reversible[Component[R] | Text],
 ) -> Generator[list[TextView], int, R]:
-    nodes = list(map(CompNode, reversed(components)))
-
     key = 0
     while True:
         screen: list[TextView] = []
@@ -31,15 +29,10 @@ def render_it[R](
         # stores (indent, stack_ptr) flattened tuples.
         indent_stack = [0, 0]
 
-        stack = nodes.copy()
+        stack = list(reversed(components))
         while stack:
-            curr = stack.pop()
-            comp = curr.comp
-
+            comp = stack.pop()
             stacklen = len(stack)
-
-            if not curr.propkey:
-                noprop_idx = min(noprop_idx, stacklen)
 
             while stacklen < indent_stack[-1]:
                 del indent_stack[-2:]
@@ -51,6 +44,9 @@ def render_it[R](
 
             if comp.indent:
                 indent_stack.extend((indent + comp.indent, stacklen))
+
+            if comp.cache and not comp.cache.propkey:
+                noprop_idx = min(noprop_idx, stacklen)
 
             genstate = getgeneratorstate(comp.gen)
             created = genstate is not GEN_CREATED
@@ -66,7 +62,7 @@ def render_it[R](
                 effective_key = key
                 noprop_idx = 1 << 31
 
-            new_children: list[CompNode[R]] = []
+            new_children: list[Component[R] | Text] = []
             # Cache of contiguous text nodes.
             cached_text = Text()
             # Whether child nodes should propogate 'key'
@@ -110,19 +106,22 @@ def render_it[R](
                     continue
 
                 if cached_text:
-                    new_children.append(CompNode(cached_text, propkey=propkey))
+                    new_children.append(cached_text)
                     cached_text = Text()
 
-                new_children.append(CompNode(child, propkey=propkey))
+                child.cache = child.cache or CompNode()
+                child.cache.propkey = propkey
+
+                new_children.append(child)
             else:
                 raise TooManyChildrenException(comp)
 
             if cached_text:
-                new_children.append(CompNode(cached_text, propkey=propkey))
+                new_children.append(cached_text)
 
-            comp.cache = curr
-            curr.children = new_children
-            stack.extend(reversed(curr.children))
+            comp.cache = comp.cache or CompNode()
+            comp.cache.children = new_children
+            stack.extend(reversed(new_children))
 
         key = yield screen
 
