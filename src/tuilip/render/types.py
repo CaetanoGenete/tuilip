@@ -1,11 +1,8 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Self, override
+from typing import Self, override
 
 from tuilip.math import divup
-
-if TYPE_CHECKING:
-    from tuilip.components.types import Component
 
 
 class Signal(IntEnum):
@@ -162,14 +159,3 @@ class Text:
 
 
 DEBUG_TRANS = str.maketrans({"\n": r"\n", '"': r"\""})
-
-
-@dataclass(slots=True)
-class CompNode[R]:
-    propkey: bool = True
-    children: "list[Component[R] | Text]" = field(default_factory=list["Component[R] | Text"])
-
-    @override
-    def __str__(self) -> str:
-        raise NotImplementedError()
-

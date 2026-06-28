@@ -79,15 +79,15 @@ class ComponentTester[R]:
                 stack = [self.comp]
                 while stack:
                     curr = stack.pop()
+                    cache = curr.cache
 
-                    if (cache := curr.cache) is not None:
-                        # On rebuild, children list is always recreated
-                        self.__build_id[id(curr)] = id(cache.children)
-                        stack.extend(
-                            child
-                            for child in reversed(cache.children)
-                            if not isinstance(child, Text)
-                        )
+                    # On rebuild, children list is always recreated
+                    self.__build_id[id(curr)] = id(cache.children)
+                    stack.extend(
+                        child
+                        for child in reversed(cache.children)
+                        if not isinstance(child, Text)
+                    )
 
             try:
                 screen = self.__render_it.send(key)
@@ -103,7 +103,7 @@ class ComponentTester[R]:
 
     def _to_xml_element(self, comp: Component[Any]) -> Element:
         prev_id = self.__build_id.get(id(comp))
-        curr_id = None if comp.cache is None else id(comp.cache.children)
+        curr_id = id(comp.cache.children)
 
         parent = Element(
             comp.debug_name,

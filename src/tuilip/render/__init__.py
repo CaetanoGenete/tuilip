@@ -6,7 +6,7 @@ from collections.abc import Callable
 
 from tuilip.components.types import Component
 from tuilip.render.exceptions import TooManyChildrenException
-from tuilip.render.types import CompNode, Signal, Span, Text
+from tuilip.render.types import Signal, Span, Text
 
 
 @dataclass(slots=True)
@@ -45,14 +45,13 @@ def render_it[R](
             if comp.indent:
                 indent_stack.extend((indent + comp.indent, stacklen))
 
-            if comp.cache and not comp.cache.propkey:
+            if not comp.cache.propkey:
                 noprop_idx = min(noprop_idx, stacklen)
 
             genstate = getgeneratorstate(comp.gen)
             created = genstate is not GEN_CREATED
 
             if comp.noreturn and genstate is GEN_CLOSED:
-                assert comp.cache, "Component generator ran outside of loop!"
                 stack.extend(reversed(comp.cache.children))
                 continue
 
@@ -85,7 +84,6 @@ def render_it[R](
                     case Signal.POLLINPUT:
                         break
                     case Signal.NOCHANGE:
-                        assert comp.cache, "Component generator ran outside of loop!"
                         new_children = comp.cache.children
                         cached_text = Text()
                         break
@@ -109,9 +107,7 @@ def render_it[R](
                     new_children.append(cached_text)
                     cached_text = Text()
 
-                child.cache = child.cache or CompNode()
                 child.cache.propkey = propkey
-
                 new_children.append(child)
             else:
                 raise TooManyChildrenException(comp)
@@ -119,7 +115,6 @@ def render_it[R](
             if cached_text:
                 new_children.append(cached_text)
 
-            comp.cache = comp.cache or CompNode()
             comp.cache.children = new_children
             stack.extend(reversed(new_children))
 
