@@ -7,24 +7,25 @@ from tuilip.input.keys import Key
 from tuilip.tester import ComponentTester
 
 
-_TEST_MOVE_CURSOR_PROMPT = "A test string or something..."
+def _wrap_cursor(cursor: int, promptlen: int) -> int:
+    if cursor >= 0:
+        return cursor
+
+    return promptlen + 1 + cursor
 
 
 @pytest.mark.parametrize(
     "pos",
-    [
-        1,
-        10,
-        len(_TEST_MOVE_CURSOR_PROMPT) - 1,
-        len(_TEST_MOVE_CURSOR_PROMPT),
-    ],
+    [1, 10, -2, -1]
 )
 def test_set_cursor(snapshot_path: Path, pos: int) -> None:
-    controller = PromptController(_TEST_MOVE_CURSOR_PROMPT)
+    init_prompt = "A test string or something..."
+
+    controller = PromptController(init_prompt)
     tester = ComponentTester(prompt(controller=controller))
 
     with tester.record(snapshot_path, compare=True):
-        controller.cursor = pos
+        controller.cursor = _wrap_cursor(pos, len(init_prompt))
         tester.next(Key.NULL)
 
 
@@ -126,10 +127,7 @@ class _DeleteWordTestCase:
 def test_delete_word(test_case: _DeleteWordTestCase) -> None:
     controller = PromptController(test_case.init_prompt, test_case.init_cursor)
     tester = ComponentTester(
-        prompt(
-            controller=controller,
-            commands={Key.LF: PromptController.select}
-        )
+        prompt(controller=controller, commands={Key.LF: PromptController.select})
     )
 
     controller.delword()
@@ -137,3 +135,61 @@ def test_delete_word(test_case: _DeleteWordTestCase) -> None:
 
     assert controller.cursor == test_case.final_cursor
     assert tester.ret == test_case.final_prompt
+
+
+@dataclass
+class _TestDeleteCharTestCase:
+    name: str
+    init_prompt: str
+    final_prompt: str
+    init_cursor: int
+    final_cursor: int
+
+
+@pytest.mark.parametrize(
+    "test_case",
+    [
+        _TestDeleteCharTestCase(
+            name="Delete from start",
+            init_prompt="Some test string",
+            final_prompt="Some test string",
+            init_cursor=0,
+            final_cursor=0,
+        ),
+        _TestDeleteCharTestCase(
+            name="Delete from center",
+            init_prompt="Some test string",
+            final_prompt="Some est string",
+            init_cursor=6,
+            final_cursor=5,
+        ),
+        _TestDeleteCharTestCase(
+            name="Delete from end",
+            init_prompt="Some test string",
+            final_prompt="Some test strin",
+            init_cursor=-1,
+            final_cursor=-1,
+        ),
+    ],
+    ids=lambda x: x.name,
+)
+def test_delete_char(test_case: _TestDeleteCharTestCase) -> None:
+    controller = PromptController(
+        test_case.init_prompt,
+        _wrap_cursor(test_case.init_cursor, len(test_case.init_prompt)),
+    )
+    tester = ComponentTester(
+        prompt(
+            controller=controller,
+            commands={Key.LF: PromptController.select},
+        )
+    )
+
+    controller.delchar()
+    tester.next(Key.LF)
+
+    assert tester.ret == test_case.final_prompt
+    assert controller.cursor == _wrap_cursor(
+        test_case.final_cursor,
+        len(controller.prompt),
+    )
