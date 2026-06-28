@@ -37,4 +37,4 @@ try:
 except KeyboardInterrupt:
     pass
 else:
-    print(f"selected: {result}")
+    print(f"\nselected: {result}")
