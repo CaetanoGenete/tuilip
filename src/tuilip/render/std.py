@@ -90,7 +90,9 @@ def render_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
 
 
 def clear_lines(nlines: int) -> str:
-    return f"\x1b[{nlines}F\x1b[J"
+    if nlines == 0:
+        return "\r\x1b[J"
+    return "\x1b[{nlines}F\x1b[J"
 
 
 def loop[R](
@@ -106,11 +108,11 @@ def loop[R](
     def onrefresh(screen: list[TextView]) -> int:
         nonlocal nlines
 
-        if nlines:
-            out.write(clear_lines(nlines))
-
         rendered = render_styles(resolve_indent(screen), theme)
+
+        out.write(clear_lines(nlines))
         out.write(rendered)
+
         nlines = rendered.count("\n")
 
         if auto_flush:
