@@ -92,7 +92,7 @@ def render_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
 def clear_lines(nlines: int) -> str:
     if nlines == 0:
         return "\r\x1b[J"
-    return "\x1b[{nlines}F\x1b[J"
+    return f"\x1b[{nlines}F\x1b[J"
 
 
 def loop[R](

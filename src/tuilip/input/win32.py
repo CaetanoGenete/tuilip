@@ -5,6 +5,26 @@ from typing import ContextManager, final
 from tuilip.input.types import InputHandler
 from tuilip.input.keys import Key
 
+SPECIAL_KEY_MAP = {
+    71: Key.HOME,
+    72: Key.UP,
+    73: Key.PAGE_UP,
+    75: Key.LEFT,
+    77: Key.RIGHT,
+    79: Key.END,
+    80: Key.DOWN,
+    81: Key.PAGE_DOWN,
+    83: Key.SDEL,
+    115: Key.CTRL_LEFT,
+    116: Key.CTRL_RIGHT,
+    141: Key.CTRL_UP,
+    145: Key.CTRL_DOWN,
+    155: Key.META_LEFT,
+    157: Key.META_RIGHT,
+    152: Key.META_UP,
+    160: Key.META_DOWN,
+}
+
 
 @final
 class Win32InputHandler(InputHandler):
@@ -14,43 +34,7 @@ class Win32InputHandler(InputHandler):
         # Parse special multi character keys
         # https://learn.microsoft.com/cpp/c-runtime-library/reference/getch-getwch#remarks
         if ch in b"\x00\xe0":
-            match msvcrt.getch()[0]:
-                case 71:
-                    return Key.HOME
-                case 72:
-                    return Key.UP
-                case 73:
-                    return Key.PAGE_UP
-                case 75:
-                    return Key.LEFT
-                case 77:
-                    return Key.RIGHT
-                case 79:
-                    return Key.END
-                case 80:
-                    return Key.DOWN
-                case 81:
-                    return Key.PAGE_DOWN
-                case 83:
-                    return Key.SDEL
-                case 115:
-                    return Key.CTRL_LEFT
-                case 116:
-                    return Key.CTRL_RIGHT
-                case 141:
-                    return Key.CTRL_UP
-                case 145:
-                    return Key.CTRL_DOWN
-                case 155:
-                    return Key.META_LEFT
-                case 157:
-                    return Key.META_RIGHT
-                case 152:
-                    return Key.META_UP
-                case 160:
-                    return Key.META_DOWN
-                case _:
-                    return 0
+            return SPECIAL_KEY_MAP.get(msvcrt.getch()[0], Key.NULL)
 
         # Weird discrepency between Windows and Unix, backspace and del are swapped...
         # Choosing Unix standard:
