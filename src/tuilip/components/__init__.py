@@ -2,11 +2,12 @@ from collections.abc import Mapping, Sequence
 from concurrent.futures import Future
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, Iterable, Literal, Never, Unpack, overload
+from typing import Any, Callable, Generator, Iterable, Literal, Never, Unpack, overload
 
 from tuilip.components.types import (
     Component,
     ComponentGen,
+    ComponentYieldT,
     Renderable,
 )
 from tuilip.components.utils import pollrefresh
@@ -18,49 +19,57 @@ from tuilip.string import Justify, just
 from tuilip.views import MapView, ShelfView
 
 type ComponentFactory[**P, R] = Callable[P, Component[R]]
-type ComponentGenFactory[**P, R] = Callable[P, ComponentGen[R]]
+type ComponentGen2[Y, R] = Generator[ComponentYieldT[Y], int, R]
+type ComponentGenFactory[**P, Y, R] = Callable[P, ComponentGen2[Y, R]]
 
 
 @overload
-def component[**P, R](
+def component[**P, Y, R](
     fn: None = ...,
     *,
     noreturn: Literal[False],
     debug_name: str = ...,
     indent: int = ...,
-) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]: ...
+) -> Callable[[ComponentGenFactory[P, Y, R]], ComponentFactory[P, Y | R]]: ...
 
 
 @overload
-def component[**P, R](
+def component[**P, Y, R](
     fn: None = ...,
     *,
     noreturn: Literal[True],
     debug_name: str = ...,
     indent: int = ...,
-) -> Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, Never]]: ...
+) -> Callable[[ComponentGenFactory[P, Y, R]], ComponentFactory[P, Y]]: ...
 
 
 @overload
-def component[**P, R](
-    fn: ComponentGenFactory[P, R],
+def component[**P](
+    fn: ComponentGenFactory[P, Never, Never],
     *,
     noreturn: bool = ...,
     debug_name: str = ...,
     indent: int = ...,
-) -> ComponentFactory[P, R]: ...
+) -> ComponentFactory[P, Never]: ...
+
+
+@overload
+def component[**P, Y, R](
+    fn: ComponentGenFactory[P, Y, R],
+    *,
+    noreturn: bool = ...,
+    debug_name: str = ...,
+    indent: int = ...,
+) -> ComponentFactory[P, Y | R]: ...
 
 
 def component[**P, R](
-    fn: ComponentGenFactory[P, R] | None = None,
+    fn: ComponentGenFactory[P, R, R] | None = None,
     *,
     noreturn: bool = False,
     debug_name: str = "",
     indent: int = 0,
-) -> (
-    ComponentFactory[P, R]
-    | Callable[[ComponentGenFactory[P, R]], ComponentFactory[P, R]]
-):
+) -> Any:
     """Converts a generator into a tuilip Component.
 
     Args:
@@ -96,7 +105,7 @@ type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | 
 
 
 @component(noreturn=True)
-def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen[R | None]:
+def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen[R]:
     """Prevents 'key' from being passed down to components wrapped by this function.
 
     Args:
@@ -156,7 +165,7 @@ def padding[R](
         debug_name="padding",
         indent=indent,
     )
-    def result() -> ComponentGen[R | None]:
+    def result() -> ComponentGen2[R, None]:
         yield comp
 
     return result()
@@ -383,7 +392,7 @@ def tabviewn[R](
 def seq[R](
     comps: Iterable[Renderable[R]],
     sep: Renderable[R] = "",
-) -> ComponentGen[R | None]:
+) -> ComponentGen2[R, None]:
     """Lays out components sequentially, with an optional `separator` between.
 
     Args:
@@ -504,7 +513,7 @@ def select[R](
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
     commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
-) -> ComponentGen[R | int]:
+) -> ComponentGen2[R, int]:
     """Selects between 'comps'. Analogous to html <select>.
 
     Args:

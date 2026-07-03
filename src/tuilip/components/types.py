@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 
 type Renderable[R] = Component[R] | TextLike
-type _ComponentYieldT[R] = Renderable[R] | Signal | None
-type ComponentGen[R] = Generator[_ComponentYieldT[R], int, R]
+type ComponentYieldT[R] = Renderable[R] | Signal | None
+type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
 
 
 @dataclass(slots=True)
