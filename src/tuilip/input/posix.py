@@ -1,7 +1,9 @@
 from contextlib import contextmanager
 from dataclasses import dataclass
+import os
+from select import select
 import sys
-from typing import IO, Any, ContextManager, Generator, final, override
+from typing import IO, Any, ContextManager, Iterator, final, override
 import termios
 
 from tuilip.input.types import InputHandler
@@ -13,7 +15,7 @@ C_CC = 6
 
 
 @contextmanager
-def tcrecover(fd: IO[Any]) -> Generator[list[Any]]:
+def tcrecover(fd: IO[Any]) -> Iterator[list[Any]]:
     """Restores any tty attribute changes upon exiting context manager.
 
     Args:
@@ -35,7 +37,7 @@ def tcrecover(fd: IO[Any]) -> Generator[list[Any]]:
 
 
 @contextmanager
-def tcraw(fd: IO[Any] = sys.stdin) -> Generator[list[Any]]:
+def tcraw(fd: IO[Any] = sys.stdin) -> Iterator[list[Any]]:
     """Places `fd` in a `raw` like terminal mode.
 
     Args:
@@ -102,12 +104,18 @@ ESCAPE_MAP = escape_code_map(ESCAPE_CODES)
 class PosixInputHandler(InputHandler):
     fd: IO[bytes] = sys.stdin.buffer
 
+    def __post_init__(self) -> None:
+        self.event_fd = os.eventfd(0)
+
     @override
     def read(self) -> int:
         flags = termios.tcgetattr(self.fd)
         old_cc = flags[C_CC].copy()
 
         try:
+            if self.fd not in select((self.fd, self.event_fd), (), ())[0]:
+                return Key.NULL
+
             match self.fd.read(1):
                 case b"":
                     return 0
@@ -144,3 +152,10 @@ class PosixInputHandler(InputHandler):
     @override
     def raw(self) -> ContextManager[None]:
         return tcraw(self.fd)  # type: ignore
+
+    @override
+    def interrupt(self) -> None:
+        os.eventfd_write(self.event_fd, 0)
+
+    def __del__(self) -> None:
+        os.close(self.event_fd)

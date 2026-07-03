@@ -16,3 +16,7 @@ class InputHandler(Protocol):
     @abstractmethod
     def raw(self) -> ContextManager[None]:
         """Places the InputHandler in `raw` mode."""
+
+    @abstractmethod
+    def interrupt(self) -> None:
+        """Interrupt `read`, typically returning Key.NULL"""

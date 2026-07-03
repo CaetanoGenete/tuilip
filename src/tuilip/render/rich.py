@@ -37,20 +37,19 @@ def loop[R](
     if console is None:
         console = Console(theme=DEFAULT_THEME)
 
-    def onrefresh(screen: list[TextView]) -> int:
+    def draw(screen: list[TextView]) -> None:
         result = RichText.assemble(
             *((span.value, span.style) for span in resolve_indent(screen))
         )
 
         live.update(result, refresh=True)
 
-        key = input_handler.read()
-        if key == 0x03:
-            raise KeyboardInterrupt()
-        return key
-
     with (
         Live(console=console, auto_refresh=False, transient=False) as live,
         input_handler.raw(),
     ):
-        return render(*components, onrefresh=onrefresh)
+        return render(
+            *components,
+            input_handler=input_handler,
+            draw=draw,
+        )

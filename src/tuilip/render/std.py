@@ -89,6 +89,10 @@ def render_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
     )
 
 
+CURSOR_HIDE = "\x1b[?25l"
+CURSOR_SHOW = "\x1b[?25h"
+
+
 def clear_lines(nlines: int) -> str:
     if nlines == 0:
         return "\r\x1b[J"
@@ -105,7 +109,7 @@ def loop[R](
 ) -> R:
     nlines = 0
 
-    def onrefresh(screen: list[TextView]) -> int:
+    def draw(screen: list[TextView]) -> None:
         nonlocal nlines
 
         rendered = render_styles(resolve_indent(screen), theme)
@@ -118,16 +122,15 @@ def loop[R](
         if auto_flush:
             out.flush()
 
-        key = input_handler.read()
-        if key == 0x03:
-            raise KeyboardInterrupt()
-        return key
-
     try:
-        out.write("\x1b[?25l")
+        out.write(CURSOR_HIDE)
         with input_handler.raw():
-            return render(*components, onrefresh=onrefresh)
+            return render(
+                *components,
+                input_handler=input_handler,
+                draw=draw,
+            )
     finally:
-        out.write("\x1b[?25h")
+        out.write(CURSOR_SHOW)
         if transient:
             out.write(clear_lines(nlines))

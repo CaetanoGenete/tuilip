@@ -1,6 +1,8 @@
 from contextlib import nullcontext
+import subprocess
+import ctypes
 import msvcrt
-from typing import ContextManager, final
+from typing import ContextManager, final, override
 
 from tuilip.input.types import InputHandler
 from tuilip.input.keys import Key
@@ -25,10 +27,27 @@ SPECIAL_KEY_MAP = {
     160: Key.META_DOWN,
 }
 
+_k32 = ctypes.windll.kernel32
+
 
 @final
 class Win32InputHandler(InputHandler):
+    def __init__(self) -> None:
+        self.h_ev = _k32.CreateEventW(None, False, False, None)
+        self.h_con = _k32.GetStdHandle(subprocess.STD_INPUT_HANDLE)
+        self.poll_arr = (ctypes.c_void_p * 2)(self.h_con, self.h_ev)
+
+    @override
     def read(self) -> int:
+        while True:
+            if _k32.WaitForMultipleObjects(2, self.poll_arr, False, 0xFFFFFFFF) == 1:
+                return Key.NULL
+
+            if msvcrt.kbhit():
+                break
+
+            _k32.FlushConsoleInputBuffer(self.h_con)
+
         ch = msvcrt.getch()
 
         # Parse special multi character keys
@@ -46,5 +65,13 @@ class Win32InputHandler(InputHandler):
 
         return int.from_bytes(ch)
 
+    @override
     def raw(self) -> ContextManager[None]:
         return nullcontext()
+
+    @override
+    def interrupt(self) -> None:
+        _k32.SetEvent(self.h_ev)
+
+    def __del__(self) -> None:
+        _k32.CloseHandle(self.h_ev)

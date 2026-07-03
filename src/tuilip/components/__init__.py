@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from concurrent.futures import Future
 from dataclasses import dataclass
 from functools import partial, wraps
 from typing import Any, Callable, Iterable, Literal, Never, Unpack, overload
@@ -12,7 +13,7 @@ from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
-from tuilip.render.types import Signal, Text, TextLike
+from tuilip.render.types import RENDERER_CONTEXT, Signal, Text, TextLike
 from tuilip.string import Justify, just
 from tuilip.views import MapView, ShelfView
 
@@ -769,3 +770,70 @@ def echo_key() -> ComponentGen[Never]:
     yield "Key: "
     while True:
         yield f"Key: {(yield Signal.POLLINPUT)}"
+
+
+def _future_comp_impl[R](
+    fut: Future[Renderable[R]],
+    *,
+    placeholder: Renderable[R] | None = None,
+) -> ComponentGen[R]:
+    context = RENDERER_CONTEXT.get()
+    fut.add_done_callback(lambda _: context.input_handler.interrupt())
+
+    yield placeholder
+    yield Signal.POLLINPUT
+
+    while True:
+        if fut.done():
+            yield fut.result()
+            break
+
+        yield Signal.NOCHANGE
+
+
+@overload
+def loading[R](
+    future: Future[Renderable[R]],
+    *,
+    placeholder: Component[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def loading[R](
+    future: Future[Component[R]],
+    *,
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def loading[R](
+    future: Future[TextLike],
+    *,
+    placeholder: TextLike,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[Never]: ...
+
+
+@overload
+def loading[R](
+    future: Future[Renderable[R]],
+    *,
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[True],
+) -> Component[R | None]: ...
+
+
+def loading[R](
+    future: Future[Any],
+    *,
+    placeholder: Renderable[R] | None = None,
+    exit_on_complete: bool = False,
+) -> Component[Any]:
+    return component(
+        _future_comp_impl,
+        noreturn=not exit_on_complete,
+    )(future, placeholder=placeholder)

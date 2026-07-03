@@ -1,7 +1,12 @@
+from contextlib import nullcontext
+from typing import ContextManager, final, override
+
 import pytest
 from tuilip.components import component
 from tuilip.components.types import ComponentGen
+from tuilip.input import InputHandler
 from tuilip.render import render
+from tuilip.input.keys import Key
 from tuilip.render.exceptions import TooManyChildrenException
 
 
@@ -13,6 +18,21 @@ def bad_component() -> ComponentGen[None]:
         yield "Some text"
 
 
+@final
+class NullInputHandler(InputHandler):
+    @override
+    def read(self) -> int:
+        return Key.NULL
+
+    @override
+    def raw(self) -> ContextManager[None]:
+        return nullcontext()
+
+    @override
+    def interrupt(self) -> None:
+        pass
+
+
 def test_infinite_component_error() -> None:
     """Checks a component which never yields POLLINPUT, eventually errors."""
 
@@ -20,7 +40,8 @@ def test_infinite_component_error() -> None:
     with pytest.raises(TooManyChildrenException) as e:
         render(
             bad_comp,
-            onrefresh=lambda x: 0,
+            input_handler=NullInputHandler(),
+            draw=lambda x: None,
         )
 
     assert e.value.comp == bad_comp

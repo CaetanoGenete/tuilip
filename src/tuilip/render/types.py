@@ -1,7 +1,9 @@
+from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Self, override
 
+from tuilip.input import InputHandler
 from tuilip.math import divup
 
 
@@ -158,4 +160,9 @@ class Text:
         return result
 
 
-DEBUG_TRANS = str.maketrans({"\n": r"\n", '"': r"\""})
+@dataclass(slots=True)
+class RendererContext:
+    input_handler: InputHandler
+
+
+RENDERER_CONTEXT = ContextVar[RendererContext]("tuilip_renderer_context")

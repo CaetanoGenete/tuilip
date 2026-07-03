@@ -5,8 +5,9 @@ from typing import Generator, Iterable, Iterator, Reversible, cast
 from collections.abc import Callable
 
 from tuilip.components.types import Component
+from tuilip.input import InputHandler
 from tuilip.render.exceptions import TooManyChildrenException
-from tuilip.render.types import Signal, Span, Text
+from tuilip.render.types import RENDERER_CONTEXT, RendererContext, Signal, Span, Text
 
 
 @dataclass(slots=True)
@@ -123,20 +124,26 @@ def render_it[R](
 
 def render[R](
     *components: Component[R] | Text,
-    onrefresh: Callable[[list[TextView]], int],
+    input_handler: InputHandler,
+    draw: Callable[[list[TextView]], None],
 ) -> R:
-    renderer = render_it(components)
-
+    token = RENDERER_CONTEXT.set(RendererContext(input_handler))
     try:
-        screen = next(renderer)
-    except StopIteration as e:
-        return e.value
+        renderer = render_it(components)
 
-    while True:
         try:
-            screen = renderer.send(onrefresh(screen))
+            screen = next(renderer)
         except StopIteration as e:
             return e.value
+
+        while True:
+            draw(screen)
+            try:
+                screen = renderer.send(input_handler.read())
+            except StopIteration as e:
+                return e.value
+    finally:
+        RENDERER_CONTEXT.reset(token)
 
 
 def resolve_indent(screen: Iterable[TextView]) -> Iterator[Span]:
