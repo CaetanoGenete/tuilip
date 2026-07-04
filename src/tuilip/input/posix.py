@@ -105,7 +105,7 @@ class PosixInputHandler(InputHandler):
     fd: IO[bytes] = sys.stdin.buffer
 
     def __post_init__(self) -> None:
-        self.event_fd = os.eventfd(0)
+        self.event_fd = os.eventfd(0, os.O_NONBLOCK)
 
     @override
     def read(self) -> int:
@@ -155,7 +155,7 @@ class PosixInputHandler(InputHandler):
 
     @override
     def interrupt(self) -> None:
-        os.eventfd_write(self.event_fd, 0)
+        os.eventfd_write(self.event_fd, 1)
 
     def __del__(self) -> None:
         os.close(self.event_fd)
