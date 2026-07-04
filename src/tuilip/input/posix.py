@@ -1,12 +1,13 @@
+import asyncio
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from select import select
 import sys
 from typing import IO, Any, ContextManager, Iterator, final, override
 import termios
 
-from tuilip.input.types import InputHandler
+from tuilip.input.types import AsyncInputHandler, InputHandlerBase
 from tuilip.input.keys import Key, escape_code_map
 
 C_IFLAG = 0
@@ -99,9 +100,48 @@ ESCAPE_CODES = {
 ESCAPE_MAP = escape_code_map(ESCAPE_CODES)
 
 
+def read_key(fd: IO[bytes]) -> None:
+    flags = termios.tcgetattr(fd)
+    old_cc = flags[C_CC].copy()
+
+    try:
+        match fd.read(1):
+            case b"":
+                return 0
+            case b"\x1b":
+                pass
+            case key:
+                return key[0]
+
+        cc = flags[C_CC]
+        cc[termios.VMIN] = 0
+        cc[termios.VTIME] = 1
+        termios.tcsetattr(fd, termios.TCSANOW, flags)
+
+        curr = ESCAPE_MAP
+        while not isinstance(curr, int):
+            key = fd.read(1)
+            if key == b"":
+                # TODO: Perhaps buffer keys instead???
+                return Key.ESCAPE
+
+            chr = key[0]
+            if chr not in curr:
+                # TODO: Perhaps buffer keys instead???
+                return Key.ESCAPE
+
+            curr = curr[chr]
+
+        return curr
+
+    finally:
+        flags[C_CC] = old_cc
+        termios.tcsetattr(fd, termios.TCSANOW, flags)
+
+
 @final
 @dataclass(slots=True)
-class PosixInputHandler(InputHandler):
+class PosixInputHandler(InputHandlerBase):
     fd: IO[bytes] = sys.stdin.buffer
 
     def __post_init__(self) -> None:
@@ -109,45 +149,15 @@ class PosixInputHandler(InputHandler):
 
     @override
     def read(self) -> int:
-        flags = termios.tcgetattr(self.fd)
-        old_cc = flags[C_CC].copy()
+        ready = select((self.fd, self.event_fd), (), ())[0]
+        if self.event_fd in ready:
+            # Read to reset event
+            os.eventfd_read(self.event_fd)
 
-        try:
-            if self.fd not in select((self.fd, self.event_fd), (), ())[0]:
-                return Key.NULL
+        if self.fd not in ready:
+            return Key.NULL
 
-            match self.fd.read(1):
-                case b"":
-                    return 0
-                case b"\x1b":
-                    pass
-                case key:
-                    return key[0]
-
-            cc = flags[C_CC]
-            cc[termios.VMIN] = 0
-            cc[termios.VTIME] = 1
-            termios.tcsetattr(self.fd, termios.TCSANOW, flags)
-
-            curr = ESCAPE_MAP
-            while not isinstance(curr, int):
-                key = self.fd.read(1)
-                if key == b"":
-                    # TODO: Perhaps buffer keys instead???
-                    return Key.ESCAPE
-
-                chr = key[0]
-                if chr not in curr:
-                    # TODO: Perhaps buffer keys instead???
-                    return Key.ESCAPE
-
-                curr = curr[chr]
-
-            return curr
-
-        finally:
-            flags[C_CC] = old_cc
-            termios.tcsetattr(self.fd, termios.TCSANOW, flags)
+        return read_key(self.fd)
 
     @override
     def raw(self) -> ContextManager[None]:
@@ -159,3 +169,39 @@ class PosixInputHandler(InputHandler):
 
     def __del__(self) -> None:
         os.close(self.event_fd)
+
+
+@final
+@dataclass(slots=True)
+class AsyncPosixInputHandler(AsyncInputHandler):
+    fd: IO[bytes] = sys.stdin.buffer
+    read_event: asyncio.Event = field(default_factory=asyncio.Event, init=False)
+    interrupt_event: asyncio.Event = field(default_factory=asyncio.Event, init=False)
+
+    def __post_init__(self) -> None:
+        asyncio.get_running_loop().add_reader(self.fd, self.read_event.set)
+
+    @override
+    async def read(self) -> int:
+        await asyncio.wait(
+            (
+                asyncio.create_task(self.read_event.wait()),
+                asyncio.create_task(self.interrupt_event.wait()),
+            ),
+            return_when=asyncio.FIRST_COMPLETED,
+        )
+
+        self.interrupt_event.clear()
+        if self.read_event.is_set():
+            self.read_event.clear()
+            return read_key(self.fd)
+
+        return Key.NULL
+
+    @override
+    def raw(self) -> ContextManager[None]:
+        return tcraw(self.fd)  # type: ignore
+
+    @override
+    def interrupt(self) -> None:
+        self.interrupt_event.set()

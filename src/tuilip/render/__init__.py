@@ -5,7 +5,8 @@ from typing import Generator, Iterable, Iterator, Reversible, cast
 from collections.abc import Callable
 
 from tuilip.components.types import Component
-from tuilip.input import InputHandler
+from tuilip.input import BlockingInputHandler
+from tuilip.input.types import AsyncInputHandler
 from tuilip.render.exceptions import TooManyChildrenException
 from tuilip.render.types import RENDERER_CONTEXT, RendererContext, Signal, Span, Text
 
@@ -124,24 +125,44 @@ def render_it[R](
 
 def render[R](
     *components: Component[R] | Text,
-    input_handler: InputHandler,
+    input_handler: BlockingInputHandler,
     draw: Callable[[list[TextView]], None],
 ) -> R:
     token = RENDERER_CONTEXT.set(RendererContext(input_handler))
     try:
         renderer = render_it(components)
 
-        try:
-            screen = next(renderer)
-        except StopIteration as e:
-            return e.value
-
+        key: int = None  # type: ignore
         while True:
-            draw(screen)
             try:
-                screen = renderer.send(input_handler.read())
+                screen = renderer.send(key)
             except StopIteration as e:
                 return e.value
+
+            draw(screen)
+            key = input_handler.read()
+    finally:
+        RENDERER_CONTEXT.reset(token)
+
+
+async def arender[R](
+    *components: Component[R] | Text,
+    input_handler: AsyncInputHandler,
+    draw: Callable[[list[TextView]], None],
+) -> R:
+    token = RENDERER_CONTEXT.set(RendererContext(input_handler))
+    try:
+        renderer = render_it(components)
+
+        key: int = None  # type: ignore
+        while True:
+            try:
+                screen = renderer.send(key)
+            except StopIteration as e:
+                return e.value
+
+            draw(screen)
+            key = await input_handler.read()
     finally:
         RENDERER_CONTEXT.reset(token)
 

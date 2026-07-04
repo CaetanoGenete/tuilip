@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import Self, override
 
-from tuilip.input import InputHandler
+from tuilip.input.types import InputHandlerBase
 from tuilip.math import divup
 
 
@@ -162,7 +162,7 @@ class Text:
 
 @dataclass(slots=True)
 class RendererContext:
-    input_handler: InputHandler
+    input_handler: InputHandlerBase
 
 
 RENDERER_CONTEXT = ContextVar[RendererContext]("tuilip_renderer_context")

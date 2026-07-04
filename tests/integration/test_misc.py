@@ -4,7 +4,7 @@ from typing import ContextManager, final, override
 import pytest
 from tuilip.components import component
 from tuilip.components.types import ComponentGen
-from tuilip.input import InputHandler
+from tuilip.input import BlockingInputHandler
 from tuilip.render import render
 from tuilip.input.keys import Key
 from tuilip.render.exceptions import TooManyChildrenException
@@ -19,7 +19,7 @@ def bad_component() -> ComponentGen[None]:
 
 
 @final
-class NullInputHandler(InputHandler):
+class NullInputHandler(BlockingInputHandler):
     @override
     def read(self) -> int:
         return Key.NULL

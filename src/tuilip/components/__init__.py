@@ -1,8 +1,21 @@
 from collections.abc import Mapping, Sequence
+import asyncio
 from concurrent.futures import Future
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Any, Callable, Generator, Iterable, Literal, Never, Unpack, overload
+from typing import (
+    Any,
+    Callable,
+    Coroutine,
+    Generator,
+    Iterable,
+    Literal,
+    Never,
+    Protocol,
+    Self,
+    Unpack,
+    overload,
+)
 
 from tuilip.components.types import (
     Component,
@@ -774,15 +787,16 @@ def prompt(
             controller.insert(key)
 
 
-@component
-def echo_key() -> ComponentGen[Never]:
-    yield "Key: "
-    while True:
-        yield f"Key: {(yield Signal.POLLINPUT)}"
+class _FutureLike[R](Protocol):
+    def add_done_callback(self, callback: Callable[[Self], Any], /) -> None: ...
+
+    def result(self) -> R: ...
+
+    def done(self) -> bool: ...
 
 
 def _future_comp_impl[R](
-    fut: Future[Renderable[R]],
+    fut: _FutureLike[Renderable[R]],
     *,
     placeholder: Renderable[R] | None = None,
 ) -> ComponentGen[R]:
@@ -846,3 +860,53 @@ def loading[R](
         _future_comp_impl,
         noreturn=not exit_on_complete,
     )(future, placeholder=placeholder)
+
+
+@overload
+def aloading[R](
+    future: Coroutine[None, None, Renderable[R]],
+    *,
+    placeholder: Component[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def aloading[R](
+    future: Coroutine[None, None, Component[R]],
+    *,
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def aloading[R](
+    future: Coroutine[None, None, TextLike],
+    *,
+    placeholder: TextLike,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[Never]: ...
+
+
+@overload
+def aloading[R](
+    future: Coroutine[None, None, Renderable[R]],
+    *,
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[True],
+) -> Component[R | None]: ...
+
+
+def aloading[R](
+    future: Coroutine[None, None, Renderable[R]],
+    *,
+    placeholder: Renderable[R] | None = None,
+    exit_on_complete: bool = False,
+) -> Component[Any]:
+    task = asyncio.ensure_future(future)
+
+    return component(
+        _future_comp_impl,
+        noreturn=not exit_on_complete,
+    )(task, placeholder=placeholder)

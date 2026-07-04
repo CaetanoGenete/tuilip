@@ -1,10 +1,26 @@
-from typing import assert_type
+from typing import Never, assert_type
 
-from tuilip.components import echo_key, prompt, select, selectn, tabview_fixed, tabviewn
+from tuilip.components import (
+    component,
+    prompt,
+    select,
+    selectn,
+    tabview_fixed,
+    tabviewn,
+)
+from tuilip.components.types import ComponentGen
 from tuilip.render.std import loop
-from tuilip.render.types import Text
+from tuilip.render.types import Signal, Text
 from tuilip.string import Justify
 from tuilip.views import LazySeq
+
+
+@component
+def echo_key() -> ComponentGen[Never]:
+    yield "Key: "
+    while True:
+        yield f"Key: {(yield Signal.POLLINPUT)}"
+
 
 try:
     result = loop(

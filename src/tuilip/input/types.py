@@ -2,7 +2,17 @@ from abc import abstractmethod
 from typing import ContextManager, Protocol
 
 
-class InputHandler(Protocol):
+class InputHandlerBase(Protocol):
+    @abstractmethod
+    def raw(self) -> ContextManager[None]:
+        """Places the InputHandler in `raw` mode."""
+
+    @abstractmethod
+    def interrupt(self) -> None:
+        """Interrupt `read`, typically returning Key.NULL"""
+
+
+class BlockingInputHandler(InputHandlerBase, Protocol):
     @abstractmethod
     def read(self) -> int:
         """Reads a single tuilip key.
@@ -13,10 +23,14 @@ class InputHandler(Protocol):
             A tuilip key-code. See tuilip.input.keys
         """
 
-    @abstractmethod
-    def raw(self) -> ContextManager[None]:
-        """Places the InputHandler in `raw` mode."""
 
+class AsyncInputHandler(InputHandlerBase, Protocol):
     @abstractmethod
-    def interrupt(self) -> None:
-        """Interrupt `read`, typically returning Key.NULL"""
+    async def read(self) -> int:
+        """Reads a single tuilip key.
+
+        The implementation may choose the source arbitrarily, or mock if needed.
+
+        Returns:
+            A tuilip key-code. See tuilip.input.keys
+        """

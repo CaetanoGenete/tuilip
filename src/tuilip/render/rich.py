@@ -7,7 +7,7 @@ except ImportError as e:
     raise Exception("Cannot use Rich backend; rich is not installed!") from e
 
 from tuilip.components.types import Component
-from tuilip.input.types import InputHandler
+from tuilip.input.types import BlockingInputHandler
 from tuilip.input import DefaultInputHandler
 from tuilip.render import TextView, render, resolve_indent
 from tuilip.render.types import Text
@@ -32,7 +32,7 @@ DEFAULT_THEME = Theme(
 def loop[R](
     *components: Component[R] | Text,
     console: Console | None = None,
-    input_handler: InputHandler = DefaultInputHandler(),
+    input_handler: BlockingInputHandler = DefaultInputHandler(),
 ) -> R:
     if console is None:
         console = Console(theme=DEFAULT_THEME)

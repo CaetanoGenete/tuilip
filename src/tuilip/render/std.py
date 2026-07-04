@@ -1,10 +1,12 @@
+from dataclasses import dataclass, field
 import sys
-from typing import IO, Iterable, Mapping
+from types import TracebackType
+from typing import IO, Iterable, Mapping, Self
 
 from tuilip.components.types import Component
-from tuilip.input.types import InputHandler
-from tuilip.input import DefaultInputHandler
-from tuilip.render import TextView, render, resolve_indent
+from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
+from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
+from tuilip.render import TextView, arender, render, resolve_indent
 from tuilip.render.types import Span, Text
 
 DEFAULT_THEME = {
@@ -93,44 +95,89 @@ CURSOR_HIDE = "\x1b[?25l"
 CURSOR_SHOW = "\x1b[?25h"
 
 
-def clear_lines(nlines: int) -> str:
+def _clear_lines(nlines: int) -> str:
     if nlines == 0:
         return "\r\x1b[J"
     return f"\x1b[{nlines}F\x1b[J"
 
 
+@dataclass
+class Painter:
+    theme: Mapping[str, str]
+    auto_flush: bool
+    out: IO[str]
+    transient: bool
+    nlines: int = field(default=0, init=False)
+
+    def draw(self, screen: list[TextView]) -> None:
+        rendered = render_styles(resolve_indent(screen), self.theme)
+
+        self.out.write(_clear_lines(self.nlines))
+        self.out.write(rendered)
+
+        self.nlines = rendered.count("\n")
+
+        if self.auto_flush:
+            self.out.flush()
+
+    def __enter__(self) -> Self:
+        self.out.write(CURSOR_HIDE)
+        return self
+
+    def __exit__(
+        self,
+        type_: type[BaseException] | None,
+        value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        self.out.write(CURSOR_SHOW)
+        if self.transient:
+            self.out.write(_clear_lines(self.nlines))
+
+
 def loop[R](
     *components: Component[R] | Text,
-    input_handler: InputHandler = DefaultInputHandler(),
+    input_handler: BlockingInputHandler = DefaultInputHandler(),
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
 ) -> R:
-    nlines = 0
+    with (
+        Painter(
+            theme=theme,
+            out=out,
+            auto_flush=auto_flush,
+            transient=transient,
+        ) as painter,
+        input_handler.raw(),
+    ):
+        return render(
+            *components,
+            input_handler=input_handler,
+            draw=painter.draw,
+        )
 
-    def draw(screen: list[TextView]) -> None:
-        nonlocal nlines
 
-        rendered = render_styles(resolve_indent(screen), theme)
-
-        out.write(clear_lines(nlines))
-        out.write(rendered)
-
-        nlines = rendered.count("\n")
-
-        if auto_flush:
-            out.flush()
-
-    try:
-        out.write(CURSOR_HIDE)
-        with input_handler.raw():
-            return render(
-                *components,
-                input_handler=input_handler,
-                draw=draw,
-            )
-    finally:
-        out.write(CURSOR_SHOW)
-        if transient:
-            out.write(clear_lines(nlines))
+async def aloop[R](
+    *components: Component[R] | Text,
+    input_handler: AsyncInputHandler = DefaultAsyncInputHandler(),
+    theme: Mapping[str, str] = DEFAULT_THEME,
+    out: IO[str] = sys.stdout,
+    auto_flush: bool = True,
+    transient: bool = False,
+) -> R:
+    with (
+        Painter(
+            theme=theme,
+            out=out,
+            auto_flush=auto_flush,
+            transient=transient,
+        ) as painter,
+        input_handler.raw(),
+    ):
+        return await arender(
+            *components,
+            input_handler=input_handler,
+            draw=painter.draw,
+        )

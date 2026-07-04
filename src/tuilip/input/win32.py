@@ -1,10 +1,11 @@
+import asyncio
 from contextlib import nullcontext
 import subprocess
 import ctypes
 import msvcrt
 from typing import ContextManager, final, override
 
-from tuilip.input.types import InputHandler
+from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 from tuilip.input.keys import Key
 
 SPECIAL_KEY_MAP = {
@@ -27,11 +28,12 @@ SPECIAL_KEY_MAP = {
     160: Key.META_DOWN,
 }
 
+
 _k32 = ctypes.windll.kernel32
 
 
 @final
-class Win32InputHandler(InputHandler):
+class Win32InputHandler(BlockingInputHandler):
     def __init__(self) -> None:
         self.h_ev = _k32.CreateEventW(None, False, False, None)
         self.h_con = _k32.GetStdHandle(subprocess.STD_INPUT_HANDLE)
@@ -75,3 +77,25 @@ class Win32InputHandler(InputHandler):
 
     def __del__(self) -> None:
         _k32.CloseHandle(self.h_ev)
+
+
+@final
+class AsyncWin32InputHandler(AsyncInputHandler):
+    def __init__(self) -> None:
+        self.sync_handle = Win32InputHandler()
+
+    @override
+    async def read(self) -> int:
+        # Cannot find clean way to wait for input using asyncio
+        return await asyncio.get_running_loop().run_in_executor(
+            None,
+            self.sync_handle.read,
+        )
+
+    @override
+    def raw(self) -> ContextManager[None]:
+        return self.sync_handle.raw()
+
+    @override
+    def interrupt(self) -> None:
+        return self.sync_handle.interrupt()
