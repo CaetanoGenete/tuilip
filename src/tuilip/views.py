@@ -1,7 +1,7 @@
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from operator import itemgetter
-from typing import Any, Callable, Literal, no_type_check, overload, override
+from typing import Any, Callable, Literal, overload, override
 
 
 @dataclass(slots=True)
@@ -86,7 +86,6 @@ class ShelfView:
     @overload
     def __new__[T](cls, seq: Sequence[Sequence[T]], index: int) -> MapView[T, T]: ...
 
-    @no_type_check
     def __new__(cls, seq: Any, index: int) -> Sequence[Any]:
         return MapView(seq, itemgetter(index))
 

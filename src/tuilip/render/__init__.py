@@ -137,7 +137,7 @@ def render[R](
             try:
                 screen = renderer.send(key)
             except StopIteration as e:
-                return e.value
+                return cast(R, e.value)
 
             draw(screen)
             key = input_handler.read()
@@ -159,7 +159,7 @@ async def arender[R](
             try:
                 screen = renderer.send(key)
             except StopIteration as e:
-                return e.value
+                return cast(R, e.value)
 
             draw(screen)
             key = await input_handler.read()

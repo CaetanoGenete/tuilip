@@ -118,7 +118,7 @@ type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | 
 
 
 @component(noreturn=True)
-def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen[R]:
+def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen2[R, None]:
     """Prevents 'key' from being passed down to components wrapped by this function.
 
     Args:
@@ -799,7 +799,7 @@ def _future_comp_impl[R](
     fut: _FutureLike[Renderable[R]],
     *,
     placeholder: Renderable[R] | None = None,
-) -> ComponentGen[R]:
+) -> ComponentGen2[R, None]:
     context = RENDERER_CONTEXT.get()
     fut.add_done_callback(lambda _: context.input_handler.interrupt())
 

@@ -137,12 +137,14 @@ class Painter:
 
 def loop[R](
     *components: Component[R] | Text,
-    input_handler: BlockingInputHandler = DefaultInputHandler(),
+    input_handler: BlockingInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
 ) -> R:
+    input_handler = input_handler or DefaultInputHandler()
+
     with (
         Painter(
             theme=theme,
@@ -161,12 +163,14 @@ def loop[R](
 
 async def aloop[R](
     *components: Component[R] | Text,
-    input_handler: AsyncInputHandler = DefaultAsyncInputHandler(),
+    input_handler: AsyncInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
 ) -> R:
+    input_handler = input_handler or DefaultAsyncInputHandler()
+
     with (
         Painter(
             theme=theme,

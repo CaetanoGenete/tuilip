@@ -10,7 +10,7 @@ async def process() -> str:
     return "finished!!!"
 
 
-async def main():
+async def main() -> None:
     await aloop(
         Text("Header:\n"),
         aloading(

@@ -189,10 +189,10 @@ def escape_code_map(escape_codes: Mapping[bytes, int | Key]) -> EscapeMap:
         curr = result
         for chr in code[:-1]:
             curr = curr.setdefault(chr, {})
-            assert isinstance(curr, dict), f"Overlapping escape codes! {code}"
+            assert isinstance(curr, dict), f"Overlapping escape codes! {code!r}"
 
         last = code[-1]
-        assert last not in curr, f"Overlapping escape codes! {code}"
+        assert last not in curr, f"Overlapping escape codes! {code!r}"
         curr[last] = mapping
 
     return result
