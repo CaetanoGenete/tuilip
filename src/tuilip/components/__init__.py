@@ -785,9 +785,10 @@ def prompt(
             controller.insert(key)
 
 
-def _future_comp_impl[R](
-    fut: Future[Renderable[R]] | asyncio.Task[Renderable[R]],
+def _future_comp_impl[T, R](
+    fut: Future[T] | asyncio.Task[T],
     *,
+    on_complete: Callable[[T], Renderable[R] | None],
     placeholder: Renderable[R] | None,
     exit_on_complete: bool,
 ) -> ComponentGen2[R, None]:
@@ -799,7 +800,7 @@ def _future_comp_impl[R](
 
     while True:
         if fut.done():
-            yield fut.result()
+            yield on_complete(fut.result())
             if exit_on_complete:
                 yield Signal.NOPOLL
 
@@ -847,9 +848,50 @@ def loading[R](
 ) -> Component[R | None]: ...
 
 
+@overload
+def loading[R, T](
+    future: FutureType[T],
+    *,
+    on_complete: Callable[[T], Renderable[R] | None],
+    placeholder: Component[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def loading[R, T](
+    future: FutureType[T],
+    *,
+    on_complete: Callable[[T], Component[R] | None],
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[R]: ...
+
+
+@overload
+def loading[T](
+    future: FutureType[T],
+    *,
+    on_complete: Callable[[T], TextLike | None],
+    placeholder: TextLike | None,
+    exit_on_complete: Literal[False] = ...,
+) -> Component[Never]: ...
+
+
+@overload
+def loading[R, T](
+    future: FutureType[T],
+    *,
+    on_complete: Callable[[T], Renderable[R] | None],
+    placeholder: Renderable[R] | None = ...,
+    exit_on_complete: Literal[True],
+) -> Component[R | None]: ...
+
+
 def loading[R](
     future: FutureType[Any],
     *,
+    on_complete: Callable[[Any], Any] = lambda x: x,
     placeholder: Renderable[R] | None = None,
     exit_on_complete: bool = False,
 ) -> Component[Any]:
@@ -861,6 +903,7 @@ def loading[R](
         noreturn=not exit_on_complete,
     )(
         future,
+        on_complete=on_complete,
         placeholder=placeholder,
         exit_on_complete=exit_on_complete,
     )
