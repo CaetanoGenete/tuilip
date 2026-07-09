@@ -9,7 +9,7 @@ from tuilip.components import (
     tabviewn,
 )
 from tuilip.components.types import ComponentGen
-from tuilip.render.std import loop
+from tuilip.render.std import render
 from tuilip.render.types import Signal, Text
 from tuilip.string import Justify
 from tuilip.views import LazySeq
@@ -23,7 +23,7 @@ def echo_key() -> ComponentGen[Never]:
 
 
 try:
-    result = loop(
+    result = render(
         Text("Header:\n"),
         tabviewn(
             ("tab1", Text("tab1")),

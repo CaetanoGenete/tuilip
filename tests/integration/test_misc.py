@@ -5,7 +5,7 @@ import pytest
 from tuilip.components import component
 from tuilip.components.types import ComponentGen
 from tuilip.input import BlockingInputHandler
-from tuilip.render import render
+from tuilip.render import loop
 from tuilip.input.keys import Key
 from tuilip.render.exceptions import TooManyChildrenException
 
@@ -38,10 +38,10 @@ def test_infinite_component_error() -> None:
 
     bad_comp = bad_component()
     with pytest.raises(TooManyChildrenException) as e:
-        render(
+        loop(
             bad_comp,
             input_handler=NullInputHandler(),
-            draw=lambda x: None,
+            draw=lambda _: None,
         )
 
     assert e.value.comp == bad_comp

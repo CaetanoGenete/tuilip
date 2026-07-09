@@ -6,7 +6,7 @@ from typing import IO, Iterable, Mapping, Self
 from tuilip.components.types import Component
 from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
-from tuilip.render import TextView, arender, render, resolve_indent
+from tuilip.render import TextView, aloop, loop, resolve_indent
 from tuilip.render.types import Span, Text
 
 DEFAULT_THEME = {
@@ -135,7 +135,7 @@ class Painter:
             self.out.write(_clear_lines(self.nlines))
 
 
-def loop[R](
+def render[R](
     *components: Component[R] | Text,
     input_handler: BlockingInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
@@ -154,14 +154,14 @@ def loop[R](
         ) as painter,
         input_handler.raw(),
     ):
-        return render(
+        return loop(
             *components,
             input_handler=input_handler,
             draw=painter.draw,
         )
 
 
-async def aloop[R](
+async def arender[R](
     *components: Component[R] | Text,
     input_handler: AsyncInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
@@ -180,7 +180,7 @@ async def aloop[R](
         ) as painter,
         input_handler.raw(),
     ):
-        return await arender(
+        return await aloop(
             *components,
             input_handler=input_handler,
             draw=painter.draw,

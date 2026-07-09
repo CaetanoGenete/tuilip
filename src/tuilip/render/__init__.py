@@ -131,7 +131,7 @@ def render_it[R](
         key = yield screen, poll
 
 
-def render[R](
+def loop[R](
     *components: Component[R] | Text,
     input_handler: BlockingInputHandler,
     draw: Callable[[list[TextView]], None],
@@ -153,7 +153,7 @@ def render[R](
         RENDERER_CONTEXT.reset(token)
 
 
-async def arender[R](
+async def aloop[R](
     *components: Component[R] | Text,
     input_handler: AsyncInputHandler,
     draw: Callable[[list[TextView]], None],

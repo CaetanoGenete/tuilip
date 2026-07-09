@@ -7,7 +7,7 @@ import asyncio
 import random
 
 from tuilip.components import loading
-from tuilip.render.std import aloop
+from tuilip.render.std import arender
 from tuilip.render.types import Text
 
 
@@ -27,7 +27,7 @@ def exit_on_interrupt() -> ComponentGen[None]:
 
 
 async def main() -> None:
-    await aloop(
+    await arender(
         Text("Header:\n"),
         seq(
             [loading(process(), placeholder="waiting...") for _ in range(10)],

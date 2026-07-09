@@ -9,7 +9,7 @@ except ImportError as e:
 from tuilip.components.types import Component
 from tuilip.input.types import BlockingInputHandler
 from tuilip.input import DefaultInputHandler
-from tuilip.render import TextView, render, resolve_indent
+from tuilip.render import TextView, loop, resolve_indent
 from tuilip.render.types import Text
 
 DEFAULT_THEME = Theme(
@@ -29,7 +29,7 @@ DEFAULT_THEME = Theme(
 )
 
 
-def loop[R](
+def render[R](
     *components: Component[R] | Text,
     console: Console | None = None,
     input_handler: BlockingInputHandler = DefaultInputHandler(),
@@ -48,7 +48,7 @@ def loop[R](
         Live(console=console, auto_refresh=False, transient=False) as live,
         input_handler.raw(),
     ):
-        return render(
+        return loop(
             *components,
             input_handler=input_handler,
             draw=draw,

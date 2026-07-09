@@ -1,11 +1,11 @@
 from typing import assert_type
 
 from tuilip.components import prompt
-from tuilip.render.rich import loop
+from tuilip.render.rich import render
 from tuilip.render.types import Text
 
 try:
-    result = loop(
+    result = render(
         Text("Enter your details: "),
         prompt(),
     )
