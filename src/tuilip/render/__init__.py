@@ -24,6 +24,8 @@ MAX_COMPONENT_CHILDREN = 1000
 def render_it[R](
     components: Reversible[Component[R] | Text],
 ) -> Generator[tuple[list[TextView], bool], int, R]:
+
+
     key = 0
     while True:
         screen: list[TextView] = []

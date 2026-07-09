@@ -13,7 +13,9 @@ if TYPE_CHECKING:
     from tuilip.render.types import Signal, TextLike, Text
 
 
-type Renderable[R] = Component[R] | TextLike
+type StaticRenderable = TextLike
+type Renderable[R] = Component[R] | StaticRenderable
+
 type ComponentYieldT[R] = Renderable[R] | Signal | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
 

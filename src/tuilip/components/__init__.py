@@ -20,6 +20,7 @@ from tuilip.components.types import (
     ComponentGen,
     ComponentYieldT,
     Renderable,
+    StaticRenderable,
 )
 from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
@@ -519,7 +520,7 @@ SELECT_MAX_BULLETS = 10
 def select[R](
     comps: Sequence[Renderable[R]],
     *,
-    sep: TextLike = "\n",
+    sep: Renderable[R] = "\n",
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
@@ -596,7 +597,7 @@ def select[R](
 
 def selectn[R](
     *comps: Renderable[R],
-    sep: TextLike = "\n",
+    sep: Renderable[R] = "\n",
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
@@ -832,9 +833,9 @@ def loading[R](
 
 @overload
 def loading(
-    future: FutureType[TextLike | None],
+    future: FutureType[StaticRenderable | None],
     *,
-    placeholder: TextLike | None,
+    placeholder: StaticRenderable | None,
     exit_on_complete: Literal[False] = ...,
 ) -> Component[Never]: ...
 
@@ -872,8 +873,8 @@ def loading[R, T](
 def loading[T](
     future: FutureType[T],
     *,
-    on_complete: Callable[[T], TextLike | None],
-    placeholder: TextLike | None,
+    on_complete: Callable[[T], StaticRenderable | None],
+    placeholder: StaticRenderable | None,
     exit_on_complete: Literal[False] = ...,
 ) -> Component[Never]: ...
 
