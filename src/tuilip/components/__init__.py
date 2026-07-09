@@ -26,7 +26,8 @@ from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
-from tuilip.render.types import RENDERER_CONTEXT, Signal, Text, TextLike
+from tuilip.render.types import RENDERER_CONTEXT, Signal
+from tuilip.render.text import Text, TextLike
 from tuilip.string import Justify, just
 from tuilip.views import MapView, ShelfView
 

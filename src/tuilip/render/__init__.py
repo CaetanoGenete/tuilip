@@ -9,7 +9,8 @@ from tuilip.components.types import Component
 from tuilip.input import BlockingInputHandler
 from tuilip.input.types import AsyncInputHandler
 from tuilip.render.exceptions import TooManyChildrenException
-from tuilip.render.types import RENDERER_CONTEXT, RendererContext, Signal, Span, Text
+from tuilip.render.types import RENDERER_CONTEXT, RendererContext, Signal
+from tuilip.render.text import Span, Text
 
 
 @dataclass(slots=True)
@@ -24,7 +25,6 @@ MAX_COMPONENT_CHILDREN = 1000
 def render_it[R](
     components: Reversible[Component[R] | Text],
 ) -> Generator[tuple[list[TextView], bool], int, R]:
-
 
     key = 0
     while True:

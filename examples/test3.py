@@ -8,7 +8,7 @@ import random
 
 from tuilip.components import loading
 from tuilip.render.std import arender
-from tuilip.render.types import Text
+from tuilip.render.text import Text
 
 
 async def process() -> str:

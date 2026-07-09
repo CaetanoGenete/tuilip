@@ -13,7 +13,8 @@ from tuilip.components.types import Component, ComponentGen
 from tuilip.input.keys import Key
 from tuilip.render import render_it, resolve_indent
 from tuilip.render.std import DEFAULT_THEME, render_styles
-from tuilip.render.types import Signal, Text
+from tuilip.render.types import Signal
+from tuilip.render.text import Text
 
 
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"

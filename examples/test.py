@@ -10,7 +10,8 @@ from tuilip.components import (
 )
 from tuilip.components.types import ComponentGen
 from tuilip.render.std import render
-from tuilip.render.types import Signal, Text
+from tuilip.render.types import Signal
+from tuilip.render.text import Text
 from tuilip.string import Justify
 from tuilip.views import LazySeq
 

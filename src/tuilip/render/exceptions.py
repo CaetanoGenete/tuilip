@@ -2,7 +2,7 @@ from types import GeneratorType
 from typing import Any
 
 from tuilip.components.types import Component
-from tuilip.render.types import Text
+from tuilip.render.text import Text
 
 
 class TooManyChildrenException(Exception):

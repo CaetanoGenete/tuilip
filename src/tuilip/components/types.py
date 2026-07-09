@@ -10,7 +10,8 @@ from typing import (
 )
 
 if TYPE_CHECKING:
-    from tuilip.render.types import Signal, TextLike, Text
+    from tuilip.render.types import Signal
+    from tuilip.render.text import TextLike, Text
 
 
 type StaticRenderable = TextLike

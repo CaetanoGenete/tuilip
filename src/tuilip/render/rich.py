@@ -10,7 +10,7 @@ from tuilip.components.types import Component
 from tuilip.input.types import BlockingInputHandler
 from tuilip.input import DefaultInputHandler
 from tuilip.render import TextView, loop, resolve_indent
-from tuilip.render.types import Text
+from tuilip.render.text import Text
 
 DEFAULT_THEME = Theme(
     {

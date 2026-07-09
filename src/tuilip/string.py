@@ -191,7 +191,7 @@ def just[T, R](
 
 
 @overload
-def just[T, L, R, U](
+def just[T, R, U](
     text: T,
     width: int,
     mode: Literal[Justify.CENTER],
@@ -214,7 +214,7 @@ def just[T, R](
 
 
 @overload
-def just[T, L, R, U](
+def just[T, R, U](
     text: T | StringType[T, R],
     width: int,
     mode: Justify,

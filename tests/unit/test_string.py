@@ -4,7 +4,7 @@ from typing import Any, Literal, assert_type
 import pytest
 from rich.text import Text as RichText
 
-from tuilip.render.types import Text
+from tuilip.render.text import Text
 from tuilip.string import lto, rto
 
 

@@ -3,7 +3,7 @@ from time import sleep
 
 from tuilip.components import loading
 from tuilip.render.std import render
-from tuilip.render.types import Text
+from tuilip.render.text import Text
 
 
 def process() -> str:

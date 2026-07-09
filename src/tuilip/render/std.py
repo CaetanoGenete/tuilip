@@ -7,7 +7,7 @@ from tuilip.components.types import Component
 from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
 from tuilip.render import TextView, aloop, loop, resolve_indent
-from tuilip.render.types import Span, Text
+from tuilip.render.text import Span, Text
 
 DEFAULT_THEME = {
     # tabview
