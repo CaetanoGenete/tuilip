@@ -69,7 +69,14 @@ class ComponentTester[R]:
         Raises:
             NoMoreFrameError: If called after the component has returned.
         """
-        for i, key in enumerate(keys):
+
+        key_stack = list(reversed(keys))
+        i = -1
+
+        while key_stack:
+            key = key_stack.pop()
+            i += 1
+
             if self.done:
                 raise NoMoreFramesError()
 
@@ -90,11 +97,14 @@ class ComponentTester[R]:
                     )
 
             try:
-                screen = self.__render_it.send(key)
+                screen, poll = self.__render_it.send(key)
             except StopIteration as e:
                 self.ret = e.value
                 self.done = True
             else:
+                if not poll:
+                    key_stack.append(Key.NULL)
+
                 frame = TestFrame(
                     key=key,
                     rendered=render_styles(resolve_indent(screen), DEFAULT_THEME),

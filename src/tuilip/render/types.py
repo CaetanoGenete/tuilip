@@ -10,8 +10,9 @@ from tuilip.math import divup
 class Signal(IntEnum):
     POLLINPUT = 1
     NOCHANGE = 2
-    PROP = 3
-    NOPROP = 4
+    NOPOLL = 3
+    PROP = 4
+    NOPROP = 5
 
 
 NO_STYLE = ""

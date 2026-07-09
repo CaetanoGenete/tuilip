@@ -1,3 +1,4 @@
+from tuilip.input.keys import Key
 from dataclasses import dataclass
 from inspect import GEN_CLOSED, GEN_CREATED, getgeneratorstate
 from typing import Generator, Iterable, Iterator, Reversible, cast
@@ -22,7 +23,7 @@ MAX_COMPONENT_CHILDREN = 1000
 
 def render_it[R](
     components: Reversible[Component[R] | Text],
-) -> Generator[list[TextView], int, R]:
+) -> Generator[tuple[list[TextView], bool], int, R]:
     key = 0
     while True:
         screen: list[TextView] = []
@@ -30,6 +31,8 @@ def render_it[R](
         noprop_idx = 1 << 31
         # stores (indent, stack_ptr) flattened tuples.
         indent_stack = [0, 0]
+
+        poll = True
 
         stack = list(reversed(components))
         while stack:
@@ -89,6 +92,9 @@ def render_it[R](
                         new_children = comp.cache.children
                         cached_text = Text()
                         break
+                    case Signal.NOPOLL:
+                        poll = False
+                        break
                     case Signal.PROP:
                         propkey = True
                         continue
@@ -120,7 +126,7 @@ def render_it[R](
             comp.cache.children = new_children
             stack.extend(reversed(new_children))
 
-        key = yield screen
+        key = yield screen, poll
 
 
 def render[R](
@@ -135,12 +141,12 @@ def render[R](
         key: int = None  # type: ignore
         while True:
             try:
-                screen = renderer.send(key)
+                screen, poll = renderer.send(key)
             except StopIteration as e:
                 return cast(R, e.value)
 
             draw(screen)
-            key = input_handler.read()
+            key = input_handler.read() if poll else Key.NULL
     finally:
         RENDERER_CONTEXT.reset(token)
 
@@ -157,12 +163,12 @@ async def arender[R](
         key: int = None  # type: ignore
         while True:
             try:
-                screen = renderer.send(key)
+                screen, poll = renderer.send(key)
             except StopIteration as e:
                 return cast(R, e.value)
 
             draw(screen)
-            key = await input_handler.read()
+            key = await input_handler.read() if poll else Key.NULL
     finally:
         RENDERER_CONTEXT.reset(token)
 

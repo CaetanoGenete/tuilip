@@ -5,14 +5,12 @@ from dataclasses import dataclass
 from functools import partial, wraps
 from typing import (
     Any,
+    Awaitable,
     Callable,
-    Coroutine,
     Generator,
     Iterable,
     Literal,
     Never,
-    Protocol,
-    Self,
     Unpack,
     overload,
 )
@@ -205,7 +203,7 @@ class TabController:
             self.tab += 1
             self.refresh = True
 
-    def prev[R](self) -> None:
+    def prev(self) -> None:
         """Select the previous tab.
 
         On overflow, remains at the first tab.
@@ -787,18 +785,11 @@ def prompt(
             controller.insert(key)
 
 
-class _FutureLike[R](Protocol):
-    def add_done_callback(self, callback: Callable[[Self], Any], /) -> None: ...
-
-    def result(self) -> R: ...
-
-    def done(self) -> bool: ...
-
-
 def _future_comp_impl[R](
-    fut: _FutureLike[Renderable[R]],
+    fut: Future[Renderable[R]] | asyncio.Task[Renderable[R]],
     *,
-    placeholder: Renderable[R] | None = None,
+    placeholder: Renderable[R] | None,
+    exit_on_complete: bool,
 ) -> ComponentGen2[R, None]:
     context = RENDERER_CONTEXT.get()
     fut.add_done_callback(lambda _: context.input_handler.interrupt())
@@ -809,14 +800,20 @@ def _future_comp_impl[R](
     while True:
         if fut.done():
             yield fut.result()
+            if exit_on_complete:
+                yield Signal.NOPOLL
+
             break
 
         yield Signal.NOCHANGE
 
 
+type FutureType[R] = Future[R] | Awaitable[R]
+
+
 @overload
 def loading[R](
-    future: Future[Renderable[R]],
+    future: FutureType[Renderable[R] | None],
     *,
     placeholder: Component[R] | None = ...,
     exit_on_complete: Literal[False] = ...,
@@ -825,7 +822,7 @@ def loading[R](
 
 @overload
 def loading[R](
-    future: Future[Component[R]],
+    future: FutureType[Component[R] | None],
     *,
     placeholder: Renderable[R] | None = ...,
     exit_on_complete: Literal[False] = ...,
@@ -833,17 +830,17 @@ def loading[R](
 
 
 @overload
-def loading[R](
-    future: Future[TextLike],
+def loading(
+    future: FutureType[TextLike | None],
     *,
-    placeholder: TextLike,
+    placeholder: TextLike | None,
     exit_on_complete: Literal[False] = ...,
 ) -> Component[Never]: ...
 
 
 @overload
 def loading[R](
-    future: Future[Renderable[R]],
+    future: FutureType[Renderable[R] | None],
     *,
     placeholder: Renderable[R] | None = ...,
     exit_on_complete: Literal[True],
@@ -851,62 +848,19 @@ def loading[R](
 
 
 def loading[R](
-    future: Future[Any],
+    future: FutureType[Any],
     *,
     placeholder: Renderable[R] | None = None,
     exit_on_complete: bool = False,
 ) -> Component[Any]:
-    return component(
-        _future_comp_impl,
-        noreturn=not exit_on_complete,
-    )(future, placeholder=placeholder)
-
-
-@overload
-def aloading[R](
-    future: Coroutine[None, None, Renderable[R]],
-    *,
-    placeholder: Component[R] | None = ...,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
-
-
-@overload
-def aloading[R](
-    future: Coroutine[None, None, Component[R]],
-    *,
-    placeholder: Renderable[R] | None = ...,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
-
-
-@overload
-def aloading[R](
-    future: Coroutine[None, None, TextLike],
-    *,
-    placeholder: TextLike,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[Never]: ...
-
-
-@overload
-def aloading[R](
-    future: Coroutine[None, None, Renderable[R]],
-    *,
-    placeholder: Renderable[R] | None = ...,
-    exit_on_complete: Literal[True],
-) -> Component[R | None]: ...
-
-
-def aloading[R](
-    future: Coroutine[None, None, Renderable[R]],
-    *,
-    placeholder: Renderable[R] | None = None,
-    exit_on_complete: bool = False,
-) -> Component[Any]:
-    task = asyncio.ensure_future(future)
+    if not isinstance(future, Future):
+        future = asyncio.ensure_future(future)
 
     return component(
         _future_comp_impl,
         noreturn=not exit_on_complete,
-    )(task, placeholder=placeholder)
+    )(
+        future,
+        placeholder=placeholder,
+        exit_on_complete=exit_on_complete,
+    )
