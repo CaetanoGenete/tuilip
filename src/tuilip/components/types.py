@@ -22,13 +22,13 @@ type Renderable[R] = Component[R] | StaticRenderable
 type ComponentYieldT[R] = Renderable[R] | Signal | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
 
-type CachedComp[R] = Component[R] | Text | AnimatedText
+type CompCacheChild[R] = Component[R] | Text | AnimatedText
 
 
 @dataclass(slots=True)
 class CompCache[R]:
     propkey: bool = True
-    children: list[CachedComp[R]] = field(default_factory=list[Any])
+    children: list[CompCacheChild[R]] = field(default_factory=list[Any])
 
 
 R_co = TypeVar("R_co", covariant=True)

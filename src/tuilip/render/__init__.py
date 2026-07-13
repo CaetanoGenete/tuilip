@@ -13,7 +13,7 @@ from tuilip.render.exceptions import TooManyChildrenException
 from tuilip.render.types import RendererContext, Signal
 from tuilip.render.text import Span, Text
 from tuilip.synchronisation import Clock
-from tuilip.components.types import CachedComp, Component
+from tuilip.components.types import CompCacheChild, Component
 
 
 @dataclass(slots=True)
@@ -29,7 +29,7 @@ MAX_COMPONENT_CHILDREN = 1000
 
 
 def build_it[R](
-    components: Reversible[CachedComp[R]],
+    components: Reversible[CompCacheChild[R]],
 ) -> Generator[tuple[BuildOutput, bool], int, R]:
 
     key = 0
@@ -74,7 +74,7 @@ def build_it[R](
                 effective_key = key
                 noprop_idx = 1 << 31
 
-            new_children: list[CachedComp[R]] = []
+            new_children: list[CompCacheChild[R]] = []
             # Cache of contiguous text nodes.
             cached_text = Text()
             # Whether child nodes should propogate 'key'
@@ -140,7 +140,7 @@ def build_it[R](
 
 
 def loop[R](
-    *components: CachedComp[R],
+    *components: CompCacheChild[R],
     input_handler: BlockingInputHandler,
     draw: Callable[[BuildOutput, int], None],
     animation_period: float,
@@ -176,7 +176,7 @@ def loop[R](
 
 
 async def aloop[R](
-    *components: CachedComp[R],
+    *components: CompCacheChild[R],
     input_handler: AsyncInputHandler,
     draw: Callable[[BuildOutput, int], None],
     animation_period: float,
