@@ -1,6 +1,8 @@
 from abc import abstractmethod
 from typing import ContextManager, Protocol
 
+TIMEOUT = -1
+"""Return value when `BlockingInputHandler` times out."""
 
 class InputHandlerBase(Protocol):
     @abstractmethod
@@ -14,7 +16,7 @@ class InputHandlerBase(Protocol):
 
 class BlockingInputHandler(InputHandlerBase, Protocol):
     @abstractmethod
-    def read(self) -> int:
+    def read(self, timeout: float) -> int:
         """Reads a single tuilip key.
 
         The implementation may choose the source arbitrarily, or mock if needed.

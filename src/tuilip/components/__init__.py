@@ -26,7 +26,7 @@ from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
-from tuilip.render.types import RENDERER_CONTEXT, Signal
+from tuilip.render.types import RendererContext, Signal
 from tuilip.render.text import Text, TextLike
 from tuilip.string import Justify, just
 from tuilip.views import MapView, ShelfView
@@ -794,7 +794,7 @@ def _future_comp_impl[T, R](
     placeholder: Renderable[R] | None,
     exit_on_complete: bool,
 ) -> ComponentGen2[R, None]:
-    context = RENDERER_CONTEXT.get()
+    context = RendererContext.get()
     fut.add_done_callback(lambda _: context.input_handler.interrupt())
 
     yield placeholder

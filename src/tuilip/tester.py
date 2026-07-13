@@ -11,8 +11,9 @@ from xml.etree.ElementPath import iterfind
 from tuilip.components import component
 from tuilip.components.types import Component, ComponentGen
 from tuilip.input.keys import Key
-from tuilip.render import render_it, resolve_indent
-from tuilip.render.std import DEFAULT_THEME, render_styles
+from tuilip.render import render_animations, build_it, resolve_indent
+from tuilip.render.anim import AnimatedText
+from tuilip.render.std import DEFAULT_THEME, apply_styles
 from tuilip.render.types import Signal
 from tuilip.render.text import Text
 
@@ -52,12 +53,15 @@ class ComponentQueryResult:
 @dataclass
 class ComponentTester[R]:
     comp: Component[R]
-    ret: R | None = field(default=None, init=False)
-    done: bool = field(default=False, init=False)
+    anim_frame: int = 0
+
     frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
 
+    ret: R | None = field(default=None, init=False)
+    done: bool = field(default=False, init=False)
+
     def __post_init__(self) -> None:
-        self.__render_it = render_it([self.comp])
+        self.__render_it = build_it([self.comp])
         self.__build_id: dict[int, int] = {}
 
         self.next(None)  # type: ignore
@@ -94,7 +98,7 @@ class ComponentTester[R]:
                     stack.extend(
                         child
                         for child in reversed(cache.children)
-                        if not isinstance(child, Text)
+                        if not isinstance(child, (Text, AnimatedText))
                     )
 
             try:
@@ -106,10 +110,11 @@ class ComponentTester[R]:
                 if not poll:
                     key_stack.append(Key.NULL)
 
-                frame = TestFrame(
-                    key=key,
-                    rendered=render_styles(resolve_indent(screen), DEFAULT_THEME),
-                )
+                rendered = render_animations(screen, self.anim_frame)
+                rendered = resolve_indent(rendered)
+                rendered = apply_styles(rendered, DEFAULT_THEME)
+
+                frame = TestFrame(key=key, rendered=rendered)
                 self.frames.append(frame)
 
     def _to_xml_element(self, comp: Component[Any]) -> Element:
@@ -128,14 +133,24 @@ class ComponentTester[R]:
         if comp.cache:
             last: Element | None = None
             for child_comp in comp.cache.children:
-                if isinstance(child_comp, Text):
-                    if last is None:
-                        parent.text = str(child_comp)
-                    else:
-                        last.tail = str(child_comp)
-                else:
-                    last = self._to_xml_element(child_comp)
-                    parent.append(last)
+                match child_comp:
+                    case Text():
+                        if last is None:
+                            parent.text = str(child_comp)
+                        else:
+                            last.tail = str(child_comp)
+                    case AnimatedText():
+                        last = Element(
+                            "animatedtext",
+                            attrib={
+                                "period": str(child_comp.period),
+                                "next": str(child_comp.next_frame)
+                            }
+                        )
+                        parent.append(last)
+                    case Component():
+                        last = self._to_xml_element(child_comp)
+                        parent.append(last)
 
         return parent
 
@@ -209,13 +224,11 @@ def mockcomp(
 ) -> ComponentGen[Never]:
     """Measured component object.
 
-        Stores
-
-        Args:
-            state: State struct.
-            template: f-string template for component to render, args are `state`'s fields.
-            id: Optional state.id override
-    e"""
+    Args:
+        state: State struct.
+        template: f-string template for component to render, args are `state`'s fields.
+        id: Optional state.id override
+    """
     state = state or MockCompState()
     state.id = id or state.id
 

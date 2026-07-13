@@ -1,6 +1,8 @@
+from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import IntEnum
+from typing import Generator, Self
 
 from tuilip.input.types import InputHandlerBase
 
@@ -13,9 +15,21 @@ class Signal(IntEnum):
     NOPROP = 5
 
 
+_RENDERER_CONTEXT = ContextVar["RendererContext"]("tuilip_renderer_context")
+
+
 @dataclass(slots=True)
 class RendererContext:
     input_handler: InputHandlerBase
 
+    @contextmanager
+    def context(self) -> Generator[Self, None, None]:
+        token = _RENDERER_CONTEXT.set(self)
+        try:
+            yield self
+        finally:
+            _RENDERER_CONTEXT.reset(token)
 
-RENDERER_CONTEXT = ContextVar[RendererContext]("tuilip_renderer_context")
+    @staticmethod
+    def get() -> "RendererContext":
+        return _RENDERER_CONTEXT.get()

@@ -5,7 +5,7 @@ import ctypes
 import msvcrt
 from typing import ContextManager, final, override
 
-from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
+from tuilip.input.types import TIMEOUT, AsyncInputHandler, BlockingInputHandler
 from tuilip.input.keys import Key
 
 SPECIAL_KEY_MAP = {
@@ -32,6 +32,9 @@ SPECIAL_KEY_MAP = {
 _k32 = ctypes.windll.kernel32
 
 
+INFINITE_TIMEOUT = 0xFFFFFFFF
+
+
 @final
 class Win32InputHandler(BlockingInputHandler):
     def __init__(self) -> None:
@@ -39,11 +42,19 @@ class Win32InputHandler(BlockingInputHandler):
         self.h_con = _k32.GetStdHandle(subprocess.STD_INPUT_HANDLE)
         self.poll_arr = (ctypes.c_void_p * 2)(self.h_con, self.h_ev)
 
-    @override
-    def read(self) -> int:
+    def _read(self, timeout: int) -> int:
         while True:
-            if _k32.WaitForMultipleObjects(2, self.poll_arr, False, 0xFFFFFFFF) == 1:
-                return Key.NULL
+            match _k32.WaitForMultipleObjects(2, self.poll_arr, False, timeout):
+                case 0:
+                    pass
+                case 1:
+                    return Key.NULL
+                case 0x102:
+                    return TIMEOUT
+                case resp:
+                    raise RuntimeError(
+                        f"win32 unexpected WaitForMultipleObjects response: {resp}"
+                    )
 
             if msvcrt.kbhit():
                 break
@@ -68,6 +79,10 @@ class Win32InputHandler(BlockingInputHandler):
         return int.from_bytes(ch)
 
     @override
+    def read(self, timeout: float) -> int:
+        return self._read(int(timeout * 1000))
+
+    @override
     def raw(self) -> ContextManager[None]:
         return nullcontext()
 
@@ -89,7 +104,8 @@ class AsyncWin32InputHandler(AsyncInputHandler):
         # Cannot find clean way to wait for input using asyncio
         return await asyncio.get_running_loop().run_in_executor(
             None,
-            self.sync_handle.read,
+            self.sync_handle._read,
+            0xFFFFFFFF,
         )
 
     @override

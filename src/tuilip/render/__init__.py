@@ -1,34 +1,40 @@
+import asyncio
+
 from tuilip.input.keys import Key
 from dataclasses import dataclass
 from inspect import GEN_CLOSED, GEN_CREATED, getgeneratorstate
 from typing import Generator, Iterable, Iterator, Reversible, cast
-
 from collections.abc import Callable
 
-from tuilip.components.types import Component
 from tuilip.input import BlockingInputHandler
 from tuilip.input.types import AsyncInputHandler
+from tuilip.render.anim import AnimatedText
 from tuilip.render.exceptions import TooManyChildrenException
-from tuilip.render.types import RENDERER_CONTEXT, RendererContext, Signal
+from tuilip.render.types import RendererContext, Signal
 from tuilip.render.text import Span, Text
+from tuilip.synchronisation import Clock
+from tuilip.components.types import CachedComp, Component
 
 
 @dataclass(slots=True)
-class TextView:
-    text: Text
+class Offset[T]:
+    value: T
     indent: int
+
+
+type BuildOutput = list[Offset[Text | AnimatedText]]
 
 
 MAX_COMPONENT_CHILDREN = 1000
 
 
-def render_it[R](
-    components: Reversible[Component[R] | Text],
-) -> Generator[tuple[list[TextView], bool], int, R]:
+def build_it[R](
+    components: Reversible[CachedComp[R]],
+) -> Generator[tuple[BuildOutput, bool], int, R]:
 
     key = 0
     while True:
-        screen: list[TextView] = []
+        screen: BuildOutput = []
 
         noprop_idx = 1 << 31
         # stores (indent, stack_ptr) flattened tuples.
@@ -45,8 +51,8 @@ def render_it[R](
                 del indent_stack[-2:]
             indent = indent_stack[-2]
 
-            if isinstance(comp, Text):
-                screen.append(TextView(comp, indent))
+            if not isinstance(comp, Component):
+                screen.append(Offset(comp, indent))
                 continue
 
             if comp.indent:
@@ -68,7 +74,7 @@ def render_it[R](
                 effective_key = key
                 noprop_idx = 1 << 31
 
-            new_children: list[Component[R] | Text] = []
+            new_children: list[CachedComp[R]] = []
             # Cache of contiguous text nodes.
             cached_text = Text()
             # Whether child nodes should propogate 'key'
@@ -117,7 +123,9 @@ def render_it[R](
                     new_children.append(cached_text)
                     cached_text = Text()
 
-                child.cache.propkey = propkey
+                if isinstance(child, Component):
+                    child.cache.propkey = propkey
+
                 new_children.append(child)
             else:
                 raise TooManyChildrenException(comp)
@@ -132,13 +140,16 @@ def render_it[R](
 
 
 def loop[R](
-    *components: Component[R] | Text,
+    *components: CachedComp[R],
     input_handler: BlockingInputHandler,
-    draw: Callable[[list[TextView]], None],
+    draw: Callable[[BuildOutput, int], None],
+    animation_period: float,
 ) -> R:
-    token = RENDERER_CONTEXT.set(RendererContext(input_handler))
-    try:
-        renderer = render_it(components)
+    clock = Clock(animation_period)
+    frame: int = 0
+
+    with RendererContext(input_handler).context():
+        renderer = build_it(components)
 
         key: int = None  # type: ignore
         while True:
@@ -147,20 +158,34 @@ def loop[R](
             except StopIteration as e:
                 return cast(R, e.value)
 
-            draw(screen)
-            key = input_handler.read() if poll else Key.NULL
-    finally:
-        RENDERER_CONTEXT.reset(token)
+            # TODO: if clock delta is close enough, increase frame
+            draw(screen, frame)
+
+            if not poll:
+                key = Key.NULL
+                continue
+
+            # Handle animation + key-input
+
+            while True:
+                if (key := input_handler.read(clock.delta())) != -1:
+                    break
+
+                frame += 1
+                draw(screen, frame)
 
 
 async def aloop[R](
-    *components: Component[R] | Text,
+    *components: CachedComp[R],
     input_handler: AsyncInputHandler,
-    draw: Callable[[list[TextView]], None],
+    draw: Callable[[BuildOutput, int], None],
+    animation_period: float,
 ) -> R:
-    token = RENDERER_CONTEXT.set(RendererContext(input_handler))
-    try:
-        renderer = render_it(components)
+    clock = Clock(animation_period)
+    frame: int = 0
+
+    with RendererContext(input_handler).context():
+        renderer = build_it(components)
 
         key: int = None  # type: ignore
         while True:
@@ -169,18 +194,57 @@ async def aloop[R](
             except StopIteration as e:
                 return cast(R, e.value)
 
-            draw(screen)
-            key = await input_handler.read() if poll else Key.NULL
-    finally:
-        RENDERER_CONTEXT.reset(token)
+            # TODO: if clock delta is close enough, increase frame
+            draw(screen, frame)
+
+            if not poll:
+                key = Key.NULL
+                continue
+
+            # Handle animation + key-input
+
+            key_task = asyncio.create_task(input_handler.read())
+            while True:
+                done, _ = await asyncio.wait(
+                    (asyncio.create_task(clock.synca()), key_task),
+                    return_when="FIRST_COMPLETED",
+                )
+                if key_task in done:
+                    key = key_task.result()
+                    break
+
+                frame += 1
+                draw(screen, frame)
 
 
-def resolve_indent(screen: Iterable[TextView]) -> Iterator[Span]:
+def render_animations(
+    screen: Iterable[Offset[Text | AnimatedText]],
+    frame: int,
+) -> Iterator[Offset[Text]]:
+    for drawable in screen:
+        anim = drawable.value
+        if isinstance(anim, AnimatedText):
+            if anim.next_frame <= frame:
+                text = next(anim.text_gen, anim.cache) or ""
+                anim.next_frame += anim.period - (anim.next_frame % anim.period)
+            else:
+                text = anim.cache or ""
+
+            if isinstance(text, str):
+                text = Text(text)
+
+            anim.cache = text
+            anim = text
+
+        yield Offset(value=anim, indent=drawable.indent)
+
+
+def resolve_indent(screen: Iterable[Offset[Text]]) -> Iterator[Span]:
     last_indent = 0
     for view in screen:
         view_indent = view.indent
 
-        for span in view.text.spans():
+        for span in view.value.spans():
             indent = view_indent + span.indent
             parsed_str = span.value
 

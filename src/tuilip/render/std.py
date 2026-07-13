@@ -6,7 +6,8 @@ from typing import IO, Iterable, Mapping, Self
 from tuilip.components.types import Component
 from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
-from tuilip.render import TextView, aloop, loop, resolve_indent
+from tuilip.render import BuildOutput, aloop, loop, resolve_indent, render_animations
+from tuilip.render.anim import AnimatedText
 from tuilip.render.text import Span, Text
 
 DEFAULT_THEME = {
@@ -74,7 +75,7 @@ ANSI_MAP = {
 }
 
 
-def render_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
+def apply_styles(spanit: Iterable[Span], theme: Mapping[str, str]) -> str:
     return "".join(
         [
             f"\x1b[{
@@ -101,7 +102,7 @@ def _clear_lines(nlines: int) -> str:
     return f"\x1b[{nlines}F\x1b[J"
 
 
-@dataclass
+@dataclass(slots=True)
 class Painter:
     theme: Mapping[str, str]
     auto_flush: bool
@@ -109,8 +110,10 @@ class Painter:
     transient: bool
     nlines: int = field(default=0, init=False)
 
-    def draw(self, screen: list[TextView]) -> None:
-        rendered = render_styles(resolve_indent(screen), self.theme)
+    def draw(self, screen: BuildOutput, frame: int) -> None:
+        rendered = render_animations(screen, frame)
+        rendered = resolve_indent(rendered)
+        rendered = apply_styles(rendered, self.theme)
 
         self.out.write(_clear_lines(self.nlines))
         self.out.write(rendered)
@@ -135,13 +138,17 @@ class Painter:
             self.out.write(_clear_lines(self.nlines))
 
 
+DEFAULT_ANIMATION_PERIOD = 1 / 10
+
+
 def render[R](
-    *components: Component[R] | Text,
+    *components: Component[R] | Text | AnimatedText,
     input_handler: BlockingInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
+    animation_period: float = DEFAULT_ANIMATION_PERIOD,
 ) -> R:
     input_handler = input_handler or DefaultInputHandler()
 
@@ -158,16 +165,18 @@ def render[R](
             *components,
             input_handler=input_handler,
             draw=painter.draw,
+            animation_period=animation_period,
         )
 
 
 async def arender[R](
-    *components: Component[R] | Text,
+    *components: Component[R] | Text | AnimatedText,
     input_handler: AsyncInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
+    animation_period: float = DEFAULT_ANIMATION_PERIOD,
 ) -> R:
     input_handler = input_handler or DefaultAsyncInputHandler()
 
@@ -184,4 +193,5 @@ async def arender[R](
             *components,
             input_handler=input_handler,
             draw=painter.draw,
+            animation_period=animation_period,
         )

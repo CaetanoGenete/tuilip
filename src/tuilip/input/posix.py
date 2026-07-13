@@ -1,13 +1,14 @@
 import asyncio
+import fcntl
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 import os
 from select import select
 import sys
-from typing import IO, Any, ContextManager, Iterator, final, override
+from typing import Any, ContextManager, Iterator, final, override, Protocol
 import termios
 
-from tuilip.input.types import AsyncInputHandler, InputHandlerBase
+from tuilip.input.types import TIMEOUT, AsyncInputHandler, BlockingInputHandler
 from tuilip.input.keys import Key, escape_code_map
 
 C_IFLAG = 0
@@ -15,8 +16,15 @@ C_LFLAG = 3
 C_CC = 6
 
 
+class HasFileNo(Protocol):
+    def fileno(self) -> int: ...
+
+
+type FDLike = int | HasFileNo
+
+
 @contextmanager
-def tcrecover(fd: IO[Any]) -> Iterator[list[Any]]:
+def tcrecover(fd: FDLike) -> Iterator[list[Any]]:
     """Restores any tty attribute changes upon exiting context manager.
 
     Args:
@@ -38,7 +46,7 @@ def tcrecover(fd: IO[Any]) -> Iterator[list[Any]]:
 
 
 @contextmanager
-def tcraw(fd: IO[Any] = sys.stdin) -> Iterator[list[Any]]:
+def tcraw(fd: FDLike = sys.stdin) -> Iterator[list[Any]]:
     """Places `fd` in a `raw` like terminal mode.
 
     Args:
@@ -100,68 +108,70 @@ ESCAPE_CODES = {
 ESCAPE_MAP = escape_code_map(ESCAPE_CODES)
 
 
-def read_key(fd: IO[bytes]) -> None:
-    flags = termios.tcgetattr(fd)
+class FileLike[R](HasFileNo, Protocol):
+    def read(self, n: int, /) -> R: ...
+
+
+def read_key(file: FileLike[bytes]) -> int:
+    flags = termios.tcgetattr(file)
     old_cc = flags[C_CC].copy()
 
     try:
-        match fd.read(1):
-            case b"":
-                return 0
-            case b"\x1b":
-                pass
-            case key:
-                return key[0]
+        if (key := file.read(1)) != b"\x1b":
+            return key[0]
 
         cc = flags[C_CC]
         cc[termios.VMIN] = 0
         cc[termios.VTIME] = 1
-        termios.tcsetattr(fd, termios.TCSANOW, flags)
+        termios.tcsetattr(file, termios.TCSANOW, flags)
 
         curr = ESCAPE_MAP
         while not isinstance(curr, int):
-            key = fd.read(1)
+            key = file.read(1)
             if key == b"":
                 # TODO: Perhaps buffer keys instead???
                 return Key.ESCAPE
 
-            chr = key[0]
-            if chr not in curr:
+            key = key[0]
+            if key not in curr:
                 # TODO: Perhaps buffer keys instead???
                 return Key.ESCAPE
 
-            curr = curr[chr]
+            curr = curr[key]
 
         return curr
 
     finally:
         flags[C_CC] = old_cc
-        termios.tcsetattr(fd, termios.TCSANOW, flags)
+        termios.tcsetattr(file, termios.TCSANOW, flags)
 
 
 @final
 @dataclass(slots=True)
-class PosixInputHandler(InputHandlerBase):
-    fd: IO[bytes] = sys.stdin.buffer
+class PosixInputHandler(BlockingInputHandler):
+    source: FileLike[bytes] = sys.stdin.buffer
 
     def __post_init__(self) -> None:
         self.event_fd = os.eventfd(0, os.O_NONBLOCK)
 
     @override
-    def read(self) -> int:
-        ready = select((self.fd, self.event_fd), (), ())[0]
+    def read(self, timeout: float) -> int:
+        ready = select((self.source, self.event_fd), (), (), timeout)[0]
+        if not ready:
+            return TIMEOUT
+
         if self.event_fd in ready:
             # Read to reset event
             os.eventfd_read(self.event_fd)
 
-        if self.fd not in ready:
+        if self.source not in ready:
             return Key.NULL
 
-        return read_key(self.fd)
+        return read_key(self.source)
 
     @override
-    def raw(self) -> ContextManager[None]:
-        return tcraw(self.fd)  # type: ignore
+    def raw(self) -> ContextManager[Any]:
+        return tcraw(self.source)
 
     @override
     def interrupt(self) -> None:
@@ -171,18 +181,58 @@ class PosixInputHandler(InputHandlerBase):
         os.close(self.event_fd)
 
 
-@final
 @dataclass(slots=True)
-class AsyncPosixInputHandler(AsyncInputHandler):
-    fd: IO[bytes] = sys.stdin.buffer
-    read_event: asyncio.Event = field(default_factory=asyncio.Event, init=False)
-    interrupt_event: asyncio.Event = field(default_factory=asyncio.Event, init=False)
+class CachedFile:
+    file: FileLike[bytes]
+    cache: bytes = field(default=b"", init=False)
 
-    def __post_init__(self) -> None:
-        asyncio.get_running_loop().add_reader(self.fd, self.read_event.set)
+    def prefetch(self, n: int) -> None:
+        self.cache += self.file.read(n)
+
+    def read(self, n: int) -> bytes:
+        result = self.cache[:n]
+        self.cache = self.cache[n:]
+
+        if (remaining := n - len(result)) > 0:
+            result += self.file.read(remaining)
+
+        return result
+
+    def fileno(self) -> int:
+        return self.file.fileno()
+
+
+@final
+class AsyncPosixInputHandler(AsyncInputHandler):
+    __slots__ = "source", "read_event", "interrupt_event"
+
+    def __init__(self, source: FileLike[bytes] = sys.stdin.buffer) -> None:
+        # Note: something (perhaps python buffers stdin?) is seeking to the end of
+        # `source` after asyncio notifies it is 'ready' for reading, but before
+        # `read_event.wait()` is run by the event loop, causing `source.read` to block.
+        # Solution: prefetch and cache reads immediately upon being notified.
+        self.source = CachedFile(source)
+
+        fl = fcntl.fcntl(source, fcntl.F_GETFL)
+        fcntl.fcntl(source, fcntl.F_SETFL, fl | os.O_NONBLOCK)
+
+        self.read_event = asyncio.Event()
+        self.interrupt_event = asyncio.Event()
+
+        asyncio.get_running_loop().add_reader(
+            self.source,
+            self._on_read_ready,
+        )
+
+    def _on_read_ready(self) -> None:
+        self.source.prefetch(4096)
+        self.read_event.set()
 
     @override
     async def read(self) -> int:
+        if self.source.cache:
+            return read_key(self.source)
+
         await asyncio.wait(
             (
                 asyncio.create_task(self.read_event.wait()),
@@ -194,13 +244,13 @@ class AsyncPosixInputHandler(AsyncInputHandler):
         self.interrupt_event.clear()
         if self.read_event.is_set():
             self.read_event.clear()
-            return read_key(self.fd)
+            return read_key(self.source)
 
         return Key.NULL
 
     @override
     def raw(self) -> ContextManager[None]:
-        return tcraw(self.fd)  # type: ignore
+        return tcraw(self.source)  # type: ignore
 
     @override
     def interrupt(self) -> None:

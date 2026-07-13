@@ -3,9 +3,9 @@ from typing import ContextManager, final, override
 
 import pytest
 from tuilip.components import component
+from tuilip.render import loop
 from tuilip.components.types import ComponentGen
 from tuilip.input import BlockingInputHandler
-from tuilip.render import loop
 from tuilip.input.keys import Key
 from tuilip.render.exceptions import TooManyChildrenException
 
@@ -21,7 +21,8 @@ def bad_component() -> ComponentGen[None]:
 @final
 class NullInputHandler(BlockingInputHandler):
     @override
-    def read(self) -> int:
+    def read(self, timeout: float) -> int:
+        del timeout
         return Key.NULL
 
     @override
@@ -41,7 +42,8 @@ def test_infinite_component_error() -> None:
         loop(
             bad_comp,
             input_handler=NullInputHandler(),
-            draw=lambda _: None,
+            draw=lambda _, __: None,
+            animation_period=1/10,
         )
 
     assert e.value.comp == bad_comp

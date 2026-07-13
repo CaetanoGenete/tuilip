@@ -9,22 +9,26 @@ from typing import (
     TypeVar,
 )
 
+
 if TYPE_CHECKING:
+    from tuilip.render.anim import AnimatedText
     from tuilip.render.types import Signal
     from tuilip.render.text import TextLike, Text
 
 
-type StaticRenderable = TextLike
+type StaticRenderable = TextLike | AnimatedText
 type Renderable[R] = Component[R] | StaticRenderable
 
 type ComponentYieldT[R] = Renderable[R] | Signal | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
 
+type CachedComp[R] = Component[R] | Text | AnimatedText
+
 
 @dataclass(slots=True)
 class CompCache[R]:
     propkey: bool = True
-    children: list[Component[R] | Text] = field(default_factory=list[Any])
+    children: list[CachedComp[R]] = field(default_factory=list[Any])
 
 
 R_co = TypeVar("R_co", covariant=True)

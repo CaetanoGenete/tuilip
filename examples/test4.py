@@ -1,19 +1,11 @@
 from tuilip.input.keys import Key
+from tuilip.render.anim import loading_spinner_1
 from tuilip.components import ComponentGen
 from tuilip.components import component
 from tuilip.components.utils import pollcond
-from tuilip.components import seq
 import asyncio
-import random
 
-from tuilip.components import loading
 from tuilip.render.std import arender
-from tuilip.render.text import Text
-
-
-async def process() -> str:
-    await asyncio.sleep(2 + random.random() * 3)
-    return "finished!!!"
 
 
 @component
@@ -27,18 +19,9 @@ def exit_on_interrupt() -> ComponentGen[None]:
 
 async def main() -> None:
     await arender(
-        Text("Header:\n"),
-        seq(
-            [
-                loading(
-                    process(),
-                    placeholder="waiting...",
-                )
-                for _ in range(10)
-            ],
-            sep="\n",
-        ),
+        loading_spinner_1(),
         exit_on_interrupt(),
+        animation_period=1 / 10,
     )
 
 
