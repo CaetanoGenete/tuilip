@@ -1,7 +1,12 @@
+from __future__ import annotations
+
 from types import GeneratorType
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from tuilip.render.text import Text
-from tuilip.components.types import Component
+
+
+if TYPE_CHECKING:
+    from tuilip.components.types import Component
 
 
 class TooManyChildrenException(Exception):

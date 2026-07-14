@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 from dataclasses import dataclass, field
 import sys
-from types import TracebackType
-from typing import IO, Iterable, Mapping, Self
+from typing import IO, TYPE_CHECKING, Iterable, Mapping, Self
 
-from tuilip.components.types import Component
-from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
 from tuilip.render import BuildOutput, aloop, loop, resolve_indent, render_animations
-from tuilip.render.anim import AnimatedText
-from tuilip.render.text import Span, Text
+
+if TYPE_CHECKING:
+    from tuilip.components.types import Renderable
+    from tuilip.render.text import Span
+    from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
+    from types import TracebackType
+
 
 DEFAULT_THEME = {
     # tabview
@@ -142,7 +146,7 @@ DEFAULT_ANIMATION_PERIOD = 1 / 10
 
 
 def render[R](
-    *components: Component[R] | Text | AnimatedText,
+    *components: Renderable[R],
     input_handler: BlockingInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
@@ -170,7 +174,7 @@ def render[R](
 
 
 async def arender[R](
-    *components: Component[R] | Text | AnimatedText,
+    *components: Renderable[R],
     input_handler: AsyncInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,

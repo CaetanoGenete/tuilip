@@ -144,8 +144,8 @@ class ComponentTester[R]:
                             "animatedtext",
                             attrib={
                                 "period": str(child_comp.period),
-                                "next": str(child_comp.next_frame)
-                            }
+                                "next": str(child_comp.next_frame),
+                            },
                         )
                         parent.append(last)
                     case Component():

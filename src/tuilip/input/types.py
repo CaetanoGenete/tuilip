@@ -4,6 +4,7 @@ from typing import ContextManager, Protocol
 TIMEOUT = -1
 """Return value when `BlockingInputHandler` times out."""
 
+
 class InputHandlerBase(Protocol):
     @abstractmethod
     def raw(self) -> ContextManager[None]:

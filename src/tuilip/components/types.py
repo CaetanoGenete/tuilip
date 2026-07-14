@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Generic,
-    TypeVar,
-)
+from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 
 if TYPE_CHECKING:

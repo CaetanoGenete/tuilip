@@ -1,19 +1,22 @@
+from __future__ import annotations
+
 import asyncio
 
 from tuilip.input.keys import Key
 from dataclasses import dataclass
 from inspect import GEN_CLOSED, GEN_CREATED, getgeneratorstate
-from typing import Generator, Iterable, Iterator, Reversible, cast
+from typing import TYPE_CHECKING, Generator, Iterable, Iterator, cast
 from collections.abc import Callable
 
-from tuilip.input import BlockingInputHandler
-from tuilip.input.types import AsyncInputHandler
-from tuilip.render.anim import AnimatedText
 from tuilip.render.exceptions import TooManyChildrenException
 from tuilip.render.types import RendererContext, Signal
 from tuilip.render.text import Span, Text
 from tuilip.synchronisation import Clock
-from tuilip.components.types import CompCacheChild, Component
+from tuilip.components.types import CompCacheChild, Component, Renderable, ComponentGen
+from tuilip.render.anim import AnimatedText
+
+if TYPE_CHECKING:
+    from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
 
 
 @dataclass(slots=True)
@@ -26,11 +29,25 @@ type BuildOutput = list[Offset[Text | AnimatedText]]
 
 
 MAX_COMPONENT_CHILDREN = 1000
+"""Maximum number of child component.
+
+If exceeded, `build_it` raises a TooManyChildrenException.
+"""
+
+
+def _root_it[R](children: Iterable[Renderable[R]]) -> ComponentGen[R]:
+    for child in children:
+        yield child
 
 
 def build_it[R](
-    components: Reversible[CompCacheChild[R]],
+    components: Iterable[Renderable[R]],
 ) -> Generator[tuple[BuildOutput, bool], int, R]:
+    root = Component(
+        noreturn=True,
+        debug_name="root",
+        gen=_root_it(components),
+    )
 
     key = 0
     while True:
@@ -42,7 +59,7 @@ def build_it[R](
 
         poll = True
 
-        stack = list(reversed(components))
+        stack: list[CompCacheChild[R]] = [root]
         while stack:
             comp = stack.pop()
             stacklen = len(stack)
@@ -140,7 +157,7 @@ def build_it[R](
 
 
 def loop[R](
-    *components: CompCacheChild[R],
+    *components: Renderable[R],
     input_handler: BlockingInputHandler,
     draw: Callable[[BuildOutput, int], None],
     animation_period: float,
@@ -176,7 +193,7 @@ def loop[R](
 
 
 async def aloop[R](
-    *components: CompCacheChild[R],
+    *components: Renderable[R],
     input_handler: AsyncInputHandler,
     draw: Callable[[BuildOutput, int], None],
     animation_period: float,

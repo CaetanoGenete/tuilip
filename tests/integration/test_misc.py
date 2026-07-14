@@ -43,7 +43,7 @@ def test_infinite_component_error() -> None:
             bad_comp,
             input_handler=NullInputHandler(),
             draw=lambda _, __: None,
-            animation_period=1/10,
+            animation_period=1 / 10,
         )
 
     assert e.value.comp == bad_comp

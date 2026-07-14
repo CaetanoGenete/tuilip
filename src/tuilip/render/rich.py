@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 try:
     from rich.live import Live
     from rich.text import Text as RichText
@@ -6,11 +8,15 @@ try:
 except ImportError as e:
     raise Exception("Cannot use Rich backend; rich is not installed!") from e
 
-from tuilip.components.types import Component
-from tuilip.input.types import BlockingInputHandler
+from typing import TYPE_CHECKING
+
 from tuilip.input import DefaultInputHandler
 from tuilip.render import BuildOutput, loop, render_animations, resolve_indent
-from tuilip.render.text import Text
+
+if TYPE_CHECKING:
+    from tuilip.input.types import BlockingInputHandler
+    from tuilip.components.types import Renderable
+
 
 DEFAULT_THEME = Theme(
     {
@@ -30,7 +36,7 @@ DEFAULT_THEME = Theme(
 
 
 def render[R](
-    *components: Component[R] | Text,
+    *components: Renderable[R],
     console: Console | None = None,
     input_handler: BlockingInputHandler = DefaultInputHandler(),
     animation_period: float = 1 / 10,

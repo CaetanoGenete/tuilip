@@ -1,10 +1,14 @@
+from __future__ import annotations
+
 from contextlib import contextmanager
 from contextvars import ContextVar
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import Generator, Self
+from typing import TYPE_CHECKING, Generator, Self
 
-from tuilip.input.types import InputHandlerBase
+
+if TYPE_CHECKING:
+    from tuilip.input.types import InputHandlerBase
 
 
 class Signal(IntEnum):
