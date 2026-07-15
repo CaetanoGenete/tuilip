@@ -14,7 +14,7 @@ from tuilip.input.keys import Key
 from tuilip.render import render_animations, build_it, resolve_indent
 from tuilip.render.anim import AnimatedText
 from tuilip.render.std import DEFAULT_THEME, apply_styles
-from tuilip.render.types import Signal
+from tuilip.render.types import Loop
 from tuilip.render.text import Text
 
 
@@ -76,16 +76,13 @@ class ComponentTester[R]:
         """
 
         key_stack = list(reversed(keys))
-        i = -1
-
         while key_stack:
-            key = key_stack.pop()
-            i += 1
-
             if self.done:
                 raise NoMoreFramesError()
 
-            if i == len(keys) - 1:
+            key = key_stack.pop()
+
+            if not key_stack:
                 self.__build_id = {}
 
                 stack = [self.comp]
@@ -106,16 +103,16 @@ class ComponentTester[R]:
             except StopIteration as e:
                 self.ret = e.value
                 self.done = True
-            else:
-                if not poll:
-                    key_stack.append(Key.NULL)
+                continue
 
-                rendered = render_animations(screen, self.anim_frame)
-                rendered = resolve_indent(rendered)
-                rendered = apply_styles(rendered, DEFAULT_THEME)
+            if not poll:
+                key_stack.append(Key.NULL)
 
-                frame = TestFrame(key=key, rendered=rendered)
-                self.frames.append(frame)
+            rendered = render_animations(screen, self.anim_frame)
+            rendered = resolve_indent(rendered)
+            rendered = apply_styles(rendered, DEFAULT_THEME)
+
+            self.frames.append(TestFrame(key=key, rendered=rendered))
 
     def _to_xml_element(self, comp: Component[Any]) -> Element:
         prev_id = self.__build_id.get(id(comp))
@@ -199,7 +196,8 @@ class ComponentTester[R]:
                     key = frame.key
                     assert key is not None
 
-                    f.write(f"{SNAPSHOT_FRAME_DELIM % key.name}{frame.rendered}")
+                    f.write(SNAPSHOT_FRAME_DELIM % key.name)
+                    f.write(frame.rendered)
 
 
 @dataclass(slots=True)
@@ -234,5 +232,5 @@ def mockcomp(
 
     while True:
         yield template.format(**asdict(state))
-        state.key = Key((yield Signal.POLLINPUT))
+        state.key = Key((yield Loop.POLLINPUT))
         state.builds += 1

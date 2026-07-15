@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from tuilip.input.types import InputHandlerBase
 
 
-class Signal(IntEnum):
+class Loop(IntEnum):
     POLLINPUT = 1
     NOCHANGE = 2
     NOPOLL = 3

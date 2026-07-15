@@ -1,7 +1,7 @@
 from collections.abc import Generator, Mapping
 from typing import Callable, Concatenate, NamedTuple, Protocol
 
-from tuilip.render.types import Signal
+from tuilip.render.types import Loop
 
 
 class PollResult(NamedTuple):
@@ -14,7 +14,7 @@ def pollcond[**P](
     poll: Callable[P, bool],
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, int, PollResult]:
+) -> Generator[Loop | None, int, PollResult]:
     """Component snippet for input polling.
 
     Polls until `poll` return `True` or truthy return from `commands`.
@@ -31,7 +31,7 @@ def pollcond[**P](
 
     returned = False
 
-    key = yield Signal.POLLINPUT
+    key = yield Loop.POLLINPUT
     while True:
         if key in commands and commands[key](*args, **kwargs):
             returned = True
@@ -40,7 +40,7 @@ def pollcond[**P](
         if poll(*args, **kwargs):
             break
 
-        key = yield Signal.NOCHANGE
+        key = yield Loop.NOCHANGE
 
     return PollResult(returned, key)
 
@@ -67,7 +67,7 @@ def pollrefresh[**P, C: RefreshableController](
     controller: C,
     *args: P.args,
     **kwargs: P.kwargs,
-) -> Generator[Signal | None, int, PollResult]:
+) -> Generator[Loop | None, int, PollResult]:
     """Component snippet for typical tuilip polling.
 
     Polls for condition `controller.refresh = True` and truthy return from `commands`.

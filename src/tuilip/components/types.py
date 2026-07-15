@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 if TYPE_CHECKING:
     from tuilip.render.anim import AnimatedText
-    from tuilip.render.types import Signal
+    from tuilip.render.types import Loop
     from tuilip.render.text import TextLike, Text
 
 
 type StaticRenderable = TextLike | AnimatedText
 type Renderable[R] = Component[R] | StaticRenderable
 
-type ComponentYieldT[R] = Renderable[R] | Signal | None
+type ComponentYieldT[R] = Renderable[R] | Loop | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
 
 type CompCacheChild[R] = Component[R] | Text | AnimatedText

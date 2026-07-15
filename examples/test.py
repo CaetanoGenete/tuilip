@@ -10,7 +10,7 @@ from tuilip.components import (
 )
 from tuilip.components.types import ComponentGen
 from tuilip.render.std import render
-from tuilip.render.types import Signal
+from tuilip.render.types import Loop
 from tuilip.render.text import Text
 from tuilip.string import Justify
 from tuilip.views import LazySeq
@@ -20,7 +20,7 @@ from tuilip.views import LazySeq
 def echo_key() -> ComponentGen[Never]:
     yield "Key: "
     while True:
-        yield f"Key: {(yield Signal.POLLINPUT)}"
+        yield f"Key: {(yield Loop.POLLINPUT)}"
 
 
 try:

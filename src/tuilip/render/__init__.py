@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Generator, Iterable, Iterator, cast
 from collections.abc import Callable
 
 from tuilip.render.exceptions import TooManyChildrenException
-from tuilip.render.types import RendererContext, Signal
+from tuilip.render.types import RendererContext, Loop
 from tuilip.render.text import Span, Text
 from tuilip.synchronisation import Clock
 from tuilip.components.types import CompCacheChild, Component, Renderable, ComponentGen
@@ -35,18 +35,13 @@ If exceeded, `build_it` raises a TooManyChildrenException.
 """
 
 
-def _root_it[R](children: Iterable[Renderable[R]]) -> ComponentGen[R]:
-    for child in children:
-        yield child
-
-
 def build_it[R](
     components: Iterable[Renderable[R]],
 ) -> Generator[tuple[BuildOutput, bool], int, R]:
     root = Component(
         noreturn=True,
         debug_name="root",
-        gen=_root_it(components),
+        gen=cast(ComponentGen[R], (child for child in components)),
     )
 
     key = 0
@@ -111,19 +106,19 @@ def build_it[R](
                     return cast(R, e.value)
 
                 match child:
-                    case Signal.POLLINPUT:
+                    case Loop.POLLINPUT:
                         break
-                    case Signal.NOCHANGE:
+                    case Loop.NOCHANGE:
                         new_children = comp.cache.children
                         cached_text = Text()
                         break
-                    case Signal.NOPOLL:
+                    case Loop.NOPOLL:
                         poll = False
                         break
-                    case Signal.PROP:
+                    case Loop.PROP:
                         propkey = True
                         continue
-                    case Signal.NOPROP:
+                    case Loop.NOPROP:
                         propkey = False
                         continue
                     case None:

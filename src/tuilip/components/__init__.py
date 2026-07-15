@@ -26,7 +26,7 @@ from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
-from tuilip.render.types import RendererContext, Signal
+from tuilip.render.types import RendererContext, Loop
 from tuilip.render.text import Text, TextLike
 from tuilip.string import Justify, just
 from tuilip.views import MapView, ShelfView
@@ -128,12 +128,12 @@ def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen2[R, None]:
     assert n >= 0, "n must be non-negative"
 
     for _ in range(n):
-        yield Signal.NOPROP
+        yield Loop.NOPROP
         yield comp
-        yield Signal.POLLINPUT
+        yield Loop.POLLINPUT
 
     if n == 0:
-        yield Signal.NOPROP
+        yield Loop.NOPROP
 
     yield comp
 
@@ -780,7 +780,7 @@ def prompt(
             controller.prompt[controller.cursor + 1 :],
         )
 
-        if (key := (yield Signal.POLLINPUT)) in commands:
+        if (key := (yield Loop.POLLINPUT)) in commands:
             if commands[key](controller):
                 return controller.prompt
         else:
@@ -798,17 +798,17 @@ def _future_comp_impl[T, R](
     fut.add_done_callback(lambda _: context.input_handler.interrupt())
 
     yield placeholder
-    yield Signal.POLLINPUT
+    yield Loop.POLLINPUT
 
     while True:
         if fut.done():
             yield on_complete(fut.result())
             if exit_on_complete:
-                yield Signal.NOPOLL
+                yield Loop.NOPOLL
 
             break
 
-        yield Signal.NOCHANGE
+        yield Loop.NOCHANGE
 
 
 type FutureType[R] = Future[R] | Awaitable[R]
