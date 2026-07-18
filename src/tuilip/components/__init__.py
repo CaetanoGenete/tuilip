@@ -11,16 +11,16 @@ from typing import (
     Iterable,
     Literal,
     Never,
+    TypeVar,
     Unpack,
     overload,
 )
-
 from tuilip.components.types import (
     Component,
     ComponentGen,
     ComponentYieldT,
     Renderable,
-    StaticRenderable,
+    TOrNever,
 )
 from tuilip.components.utils import pollrefresh
 from tuilip.functional import rpadfn
@@ -118,7 +118,7 @@ type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | 
 
 
 @component(noreturn=True)
-def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen2[R, None]:
+def noprop(comp: Component[TOrNever], *, n: int = 0) -> ComponentGen2[TOrNever, None]:
     """Prevents 'key' from being passed down to components wrapped by this function.
 
     Args:
@@ -138,24 +138,10 @@ def noprop[R](comp: Component[R], *, n: int = 0) -> ComponentGen2[R, None]:
     yield comp
 
 
-@overload
 def padding(
-    comp: str | Text,
+    comp: Renderable[TOrNever],
     indent: int,
-) -> Component[Never]: ...
-
-
-@overload
-def padding[R](
-    comp: Component[R],
-    indent: int,
-) -> Component[R]: ...
-
-
-def padding[R](
-    comp: Renderable[R],
-    indent: int,
-) -> Renderable[R]:
+) -> Renderable[TOrNever]:
     """Indents child component by `indent` units.
 
     This is a right translation of the entire component (and its descendants), relative
@@ -178,7 +164,7 @@ def padding[R](
         debug_name="padding",
         indent=indent,
     )
-    def result() -> ComponentGen2[R, None]:
+    def result() -> ComponentGen2[TOrNever, None]:
         yield comp
 
     return result()
@@ -348,13 +334,13 @@ DEFAULT_TABVIEW_HEADING = tabview_compact(3)
 
 
 @component
-def tabview[R](
-    tabs: Sequence[Tab[R]],
+def tabview(
+    tabs: Sequence[Tab[TOrNever]],
     *,
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
-    commands: TabviewCommandsMap[R] = DEFAULT_TABVIEW_COMMANDS,
-) -> ComponentGen[R]:
+    commands: TabviewCommandsMap[TOrNever] = DEFAULT_TABVIEW_COMMANDS,
+) -> ComponentGen[TOrNever]:
     """Shows one component (from `tabs`) at a time.
 
     Args:
@@ -383,12 +369,12 @@ def tabview[R](
         last_tab = tab_idx
 
 
-def tabviewn[R](
-    *tabs: Tab[R],
+def tabviewn(
+    *tabs: Tab[TOrNever],
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
-    commands: TabviewCommandsMap[R] = DEFAULT_TABVIEW_COMMANDS,
-) -> Component[R]:
+    commands: TabviewCommandsMap[TOrNever] = DEFAULT_TABVIEW_COMMANDS,
+) -> Component[TOrNever]:
     """Variadic interface for `tabview`.
 
     Args:
@@ -402,10 +388,10 @@ def tabviewn[R](
 
 
 @component(noreturn=True)
-def seq[R](
-    comps: Iterable[Renderable[R]],
-    sep: Renderable[R] = "",
-) -> ComponentGen2[R, None]:
+def seq(
+    comps: Iterable[Renderable[TOrNever]],
+    sep: Renderable[TOrNever] = "",
+) -> ComponentGen2[TOrNever, None]:
     """Lays out components sequentially, with an optional `separator` between.
 
     Args:
@@ -429,10 +415,10 @@ def seq[R](
         yield value
 
 
-def seqn[R](
-    *comps: Renderable[R],
-    sep: Renderable[R] = "",
-) -> Component[R]:
+def seqn(
+    *comps: Renderable[TOrNever],
+    sep: Renderable[TOrNever] = "",
+) -> Component[TOrNever]:
     """Variadic interface for `seq`.
 
     Args:
@@ -518,15 +504,15 @@ SELECT_MAX_BULLETS = 10
 
 
 @component
-def select[R](
-    comps: Sequence[Renderable[R]],
+def select(
+    comps: Sequence[Renderable[TOrNever]],
     *,
-    sep: Renderable[R] = "\n",
+    sep: Renderable[TOrNever] = "\n",
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
-    commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
-) -> ComponentGen2[R, int]:
+    commands: SelectCommandsMap[TOrNever] = DEFAULT_SELECT_COMMANDS,
+) -> ComponentGen2[TOrNever, int]:
     """Selects between 'comps'. Analogous to html <select>.
 
     Args:
@@ -550,9 +536,6 @@ def select[R](
 
     if isinstance(cursor, str):
         cursor = Text(cursor, style="select.selected")
-
-    if isinstance(sep, str):
-        sep = Text(sep)
 
     indent = len(cursor)
     cursorcomp = padding(
@@ -596,14 +579,14 @@ def select[R](
             return controller.index
 
 
-def selectn[R](
-    *comps: Renderable[R],
-    sep: Renderable[R] = "\n",
+def selectn(
+    *comps: Renderable[TOrNever],
+    sep: Renderable[TOrNever] = "\n",
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
-    commands: SelectCommandsMap[R] = DEFAULT_SELECT_COMMANDS,
-) -> Component[R | int]:
+    commands: SelectCommandsMap[TOrNever] = DEFAULT_SELECT_COMMANDS,
+) -> Component[TOrNever | int]:
     """Variadic interface for `select`.
 
     Args:
@@ -815,79 +798,44 @@ type FutureType[R] = Future[R] | Awaitable[R]
 
 
 @overload
-def loading[R](
-    future: FutureType[Renderable[R] | None],
+def loading(
+    future: FutureType[Renderable[TOrNever] | None],
     *,
-    placeholder: Component[R] | None = ...,
+    placeholder: Renderable[TOrNever] | None = ...,
     exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
-
-
-@overload
-def loading[R](
-    future: FutureType[Component[R] | None],
-    *,
-    placeholder: Renderable[R] | None = ...,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
+) -> Component[TOrNever]: ...
 
 
 @overload
 def loading(
-    future: FutureType[StaticRenderable | None],
+    future: FutureType[Renderable[TOrNever] | None],
     *,
-    placeholder: StaticRenderable | None,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[Never]: ...
-
-
-@overload
-def loading[R](
-    future: FutureType[Renderable[R] | None],
-    *,
-    placeholder: Renderable[R] | None = ...,
+    placeholder: Renderable[TOrNever] | None = ...,
     exit_on_complete: Literal[True],
-) -> Component[R | None]: ...
+) -> Component[TOrNever | None]: ...
+
+
+U = TypeVar("U")
 
 
 @overload
-def loading[R, T](
-    future: FutureType[T],
+def loading(
+    future: FutureType[U],
     *,
-    on_complete: Callable[[T], Renderable[R] | None],
-    placeholder: Component[R] | None = ...,
+    on_complete: Callable[[U], Renderable[TOrNever] | None],
+    placeholder: Renderable[TOrNever] | None = ...,
     exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
+) -> Component[TOrNever]: ...
 
 
 @overload
-def loading[R, T](
-    future: FutureType[T],
+def loading(
+    future: FutureType[U],
     *,
-    on_complete: Callable[[T], Component[R] | None],
-    placeholder: Renderable[R] | None = ...,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[R]: ...
-
-
-@overload
-def loading[T](
-    future: FutureType[T],
-    *,
-    on_complete: Callable[[T], StaticRenderable | None],
-    placeholder: StaticRenderable | None,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[Never]: ...
-
-
-@overload
-def loading[R, T](
-    future: FutureType[T],
-    *,
-    on_complete: Callable[[T], Renderable[R] | None],
-    placeholder: Renderable[R] | None = ...,
-    exit_on_complete: Literal[True],
-) -> Component[R | None]: ...
+    on_complete: Callable[[U], Renderable[TOrNever] | None],
+    placeholder: Renderable[TOrNever] | None = ...,
+    exit_on_complete: Literal[True] = ...,
+) -> Component[TOrNever | None]: ...
 
 
 def loading[R](

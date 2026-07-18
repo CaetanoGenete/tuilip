@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from tuilip.components.types import TOrNever
+
 try:
     from rich.live import Live
     from rich.text import Text as RichText
@@ -35,12 +37,12 @@ DEFAULT_THEME = Theme(
 )
 
 
-def render[R](
-    *components: Renderable[R],
+def render(
+    *components: Renderable[TOrNever],
     console: Console | None = None,
     input_handler: BlockingInputHandler = DefaultInputHandler(),
     animation_period: float = 1 / 10,
-) -> R:
+) -> TOrNever:
     if console is None:
         console = Console(theme=DEFAULT_THEME)
 

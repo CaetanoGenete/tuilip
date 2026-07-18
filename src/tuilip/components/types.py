@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, Generic, Never
+from typing_extensions import TypeVar
 
 
 if TYPE_CHECKING:
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from tuilip.render.types import Loop
     from tuilip.render.text import TextLike, Text
 
+TOrNever = TypeVar("TOrNever", default=Never)
 
 type StaticRenderable = TextLike | AnimatedText
 type Renderable[R] = Component[R] | StaticRenderable

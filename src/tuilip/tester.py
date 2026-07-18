@@ -4,12 +4,12 @@ import os
 from pathlib import Path
 import random
 import re
-from typing import Any, Generator, Iterator, Never
+from typing import Any, Generator, Generic, Iterator, Never
 from xml.etree.ElementTree import Element
 from xml.etree.ElementPath import iterfind
 
 from tuilip.components import component
-from tuilip.components.types import Component, ComponentGen
+from tuilip.components.types import Component, ComponentGen, TOrNever
 from tuilip.input.keys import Key
 from tuilip.render import render_animations, build_it, resolve_indent
 from tuilip.render.anim import AnimatedText
@@ -51,13 +51,13 @@ class ComponentQueryResult:
 
 
 @dataclass
-class ComponentTester[R]:
-    comp: Component[R]
+class ComponentTester(Generic[TOrNever]):
+    comp: Component[TOrNever]
     anim_frame: int = 0
 
     frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
 
-    ret: R | None = field(default=None, init=False)
+    ret: TOrNever | None = field(default=None, init=False)
     done: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:

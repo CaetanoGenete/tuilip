@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 import sys
 from typing import IO, TYPE_CHECKING, Iterable, Mapping, Self
 
+from tuilip.components.types import TOrNever
 from tuilip.input import DefaultAsyncInputHandler, DefaultInputHandler
 from tuilip.render import BuildOutput, aloop, loop, resolve_indent, render_animations
 
@@ -13,20 +14,6 @@ if TYPE_CHECKING:
     from tuilip.input.types import AsyncInputHandler, BlockingInputHandler
     from types import TracebackType
 
-
-DEFAULT_THEME = {
-    # tabview
-    "tabview.selected": "red",
-    "tabview.unselected": "blue",
-    "tabview.arrow-enabled": "",
-    "tabview.arrow-disabled": "dim",
-    # select
-    "select.selected": "green",
-    "select.bullets": "dim",
-    "select.pager": "dim",
-    # Prompt:
-    "prompt.cursor": "black bwhite",
-}
 
 ANSI_MAP = {
     # --- Styles & Formatting ---
@@ -76,6 +63,20 @@ ANSI_MAP = {
     "bbright_magenta": "105",
     "bbright_cyan": "106",
     "bbright_white": "107",
+}
+
+DEFAULT_THEME = {
+    # tabview
+    "tabview.selected": "red",
+    "tabview.unselected": "blue",
+    "tabview.arrow-enabled": "",
+    "tabview.arrow-disabled": "dim",
+    # select
+    "select.selected": "green",
+    "select.bullets": "dim",
+    "select.pager": "dim",
+    # Prompt:
+    "prompt.cursor": "black bwhite",
 }
 
 
@@ -145,15 +146,15 @@ class Painter:
 DEFAULT_ANIMATION_PERIOD = 1 / 10
 
 
-def render[R](
-    *components: Renderable[R],
+def render(
+    *components: Renderable[TOrNever],
     input_handler: BlockingInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
     animation_period: float = DEFAULT_ANIMATION_PERIOD,
-) -> R:
+) -> TOrNever:
     input_handler = input_handler or DefaultInputHandler()
 
     with (
@@ -173,15 +174,15 @@ def render[R](
         )
 
 
-async def arender[R](
-    *components: Renderable[R],
+async def arender(
+    *components: Renderable[TOrNever],
     input_handler: AsyncInputHandler | None = None,
     theme: Mapping[str, str] = DEFAULT_THEME,
     out: IO[str] = sys.stdout,
     auto_flush: bool = True,
     transient: bool = False,
     animation_period: float = DEFAULT_ANIMATION_PERIOD,
-) -> R:
+) -> TOrNever:
     input_handler = input_handler or DefaultAsyncInputHandler()
 
     with (
