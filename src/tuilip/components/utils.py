@@ -1,5 +1,5 @@
 from collections.abc import Generator, Mapping
-from typing import Callable, Concatenate, NamedTuple, Protocol
+from typing import Any, Callable, Concatenate, NamedTuple, Protocol
 
 from tuilip.render.types import Loop
 
@@ -49,10 +49,10 @@ class RefreshableController(Protocol):
     refresh: bool
 
 
-def _pollrefresh[**P](
+def _pollrefresh(
     controller: RefreshableController,
-    *args: P.args,
-    **kwargs: P.kwargs,
+    *args: Any,
+    **kwargs: Any,
 ) -> bool:
     del args
     del kwargs

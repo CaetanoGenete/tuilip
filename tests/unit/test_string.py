@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Literal, assert_type
+from typing import assert_type
 
 import pytest
-from rich.text import Text as RichText
 
 from tuilip.render.text import Text
-from tuilip.string import lto, rto
+from tuilip.string import cjust, lto, rto
 
 
 @dataclass
@@ -69,7 +68,7 @@ class _OTestCase[T]:
         ),
     ],
 )
-def test_rto(test_case: _OTestCase[Any]) -> None:
+def test_rto(test_case: _OTestCase[str]) -> None:
     actual = rto(
         test_case.value,
         test_case.olen,
@@ -132,7 +131,7 @@ def test_rto(test_case: _OTestCase[Any]) -> None:
         ),
     ],
 )
-def test_lto(test_case: _OTestCase[Any]) -> None:
+def test_lto(test_case: _OTestCase[str | Text]) -> None:
     actual = lto(
         test_case.value,
         test_case.olen,
@@ -144,18 +143,26 @@ def test_lto(test_case: _OTestCase[Any]) -> None:
 
 # str type checks
 
-_ = assert_type(lto("value"), str)
-
-# Rich type checks
-
-_ = assert_type(lto(RichText("value"), ochar=RichText("..")), RichText)
-_ = assert_type(lto("value", ochar=RichText("")), Literal["value"] | RichText)
-_ = assert_type(rto(RichText("value"), ochar=RichText("..")), RichText)
-_ = assert_type(rto(RichText("value")), RichText)
+assert_type(lto("value"), str)
+assert_type(lto("value", ochar=".."), str)
 
 # Tulip type checks
 
-_ = assert_type(lto(Text("value"), ochar=Text("..")), Text)
-_ = assert_type(lto("value", ochar=Text("")), Literal["value"] | Text)
-_ = assert_type(rto(Text("value"), ochar=Text("..")), Text)
-_ = assert_type(rto(Text("value")), Text)
+assert_type(lto(Text("value"), ochar=Text("..")), Text)
+assert_type(lto("value", ochar=Text("")), str | Text)
+assert_type(lto(Text("value"), ochar=" "), Text)
+assert_type(lto(Text("value")), Text)
+
+assert_type(rto(Text("value"), ochar=Text("..")), Text)
+assert_type(rto("value", ochar=Text("..")), str | Text)
+assert_type(rto(Text("value"), ochar=" "), Text)
+assert_type(rto(Text("value")), Text)
+
+assert_type(cjust(Text("value"), 10, lfill=Text(".."), rfill=Text("..")), Text)
+assert_type(cjust(Text("value"), 10, lfill=Text(".."), rfill=".."), Text)
+assert_type(cjust(Text("value"), 10, lfill="..", rfill=Text("..")), Text)
+assert_type(cjust(Text("value"), 10, lfill="..", rfill=".."), Text)
+assert_type(cjust("value", 10, lfill=Text(".."), rfill=Text("..")), Text)
+assert_type(cjust("value", 10, lfill=Text(".."), rfill=".."), Text)
+assert_type(cjust("value", 10, lfill="..", rfill=Text("..")), Text)
+assert_type(cjust("value", 10, lfill="..", rfill=".."), str)

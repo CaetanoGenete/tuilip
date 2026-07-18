@@ -18,7 +18,7 @@ class TooManyChildrenException(Exception):
 
         if isinstance(gen, GeneratorType):
             fname = gen.gi_code.co_filename
-            lno = gen.gi_code.co_firstlineno
+            lno = str(gen.gi_code.co_firstlineno)
         else:
             fname = "?"
             lno = "?"

@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
+from itertools import repeat
 from typing import Self, override
 from tuilip.math import divup
 
@@ -71,7 +74,7 @@ class Text:
         self.__append(other)
         return self
 
-    def __add__(self, other: TextLike, /) -> "Text":
+    def __add__(self, other: TextLike, /) -> Text:
         result = Text()
 
         result._spans.extend(self._spans)
@@ -80,13 +83,19 @@ class Text:
 
         return result
 
-    def __radd__(self, other: str, /) -> "Text":
+    def __radd__(self, other: str, /) -> Text:
         result = Text()
 
         result += other
         result += self
 
         return result
+
+    def __mul__(self, count: int, /) -> Text:
+        return Text(*repeat(self, count))
+
+    def __imul__(self, count: int, /) -> Text:
+        return Text(*repeat(self, count))
 
     def spans(self) -> list[Span]:
         """Returns the underlying splan objects.

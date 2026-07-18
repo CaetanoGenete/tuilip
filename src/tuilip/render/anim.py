@@ -17,7 +17,7 @@ class AnimatedText:
     next_frame: int = field(default=-1, init=False)
 
     def at_period(self, period: int) -> AnimatedText:
-        return replace(self, interval=period)
+        return replace(self, period=period)
 
 
 def animated_text[**P](

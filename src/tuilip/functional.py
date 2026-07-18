@@ -28,3 +28,7 @@ def atend(iterator: Iterator[Any]) -> bool:
         return False
     except StopIteration:
         return True
+
+
+def identity[T](x: T) -> T:
+    return x

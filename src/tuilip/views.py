@@ -47,49 +47,55 @@ class MapView[T, R](Sequence[R]):
         return map(self.mapfn, reversed(self.seq))
 
 
-class ShelfView:
-    @overload
-    def __new__[T0, *Ts](
-        cls, seq: Sequence[tuple[T0, *Ts]], index: Literal[0]
-    ) -> MapView[T0, T0]: ...
-
-    @overload
-    def __new__[T0, T1, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, *Ts]], index: Literal[1]
-    ) -> MapView[T1, T1]: ...
-
-    @overload
-    def __new__[T0, T1, T2, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, T2, *Ts]], index: Literal[2]
-    ) -> MapView[T2, T2]: ...
-
-    @overload
-    def __new__[T0, T1, T2, T3, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, T2, T3, *Ts]], index: Literal[3]
-    ) -> MapView[T3, T3]: ...
-
-    @overload
-    def __new__[T0, T1, T2, T3, T4, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, T2, T3, T4, *Ts]], index: Literal[4]
-    ) -> MapView[T4, T4]: ...
-
-    @overload
-    def __new__[T0, T1, T2, T3, T4, T5, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, T2, T3, T4, T5, *Ts]], index: Literal[5]
-    ) -> MapView[T5, T5]: ...
-
-    @overload
-    def __new__[T0, T1, T2, T3, T4, T5, T6, *Ts](
-        cls, seq: Sequence[tuple[T0, T1, T2, T3, T4, T5, T6, *Ts]], index: Literal[6]
-    ) -> MapView[T6, T6]: ...
-
-    @overload
-    def __new__[T](cls, seq: Sequence[Sequence[T]], index: int) -> MapView[T, T]: ...
-
-    def __new__(cls, seq: Any, index: int) -> Sequence[Any]:
-        return MapView(seq, itemgetter(index))
+@overload
+def ShelfView[T0, *Ts](
+    seq: Sequence[tuple[T0, *Ts]], index: Literal[0]
+) -> MapView[Any, T0]: ...
 
 
-class LazySeq[T]:
-    def __new__(cls, length: int, mapfn: Callable[[int], T]) -> MapView[int, T]:
-        return MapView(range(length), mapfn)
+@overload
+def ShelfView[T0, T1, *Ts](
+    seq: Sequence[tuple[T0, T1, *Ts]], index: Literal[1]
+) -> MapView[Any, T1]: ...
+
+
+@overload
+def ShelfView[T0, T1, T2, *Ts](
+    seq: Sequence[tuple[T0, T1, T2, *Ts]], index: Literal[2]
+) -> MapView[Any, T2]: ...
+
+
+@overload
+def ShelfView[T0, T1, T2, T3, *Ts](
+    seq: Sequence[tuple[T0, T1, T2, T3, *Ts]], index: Literal[3]
+) -> MapView[Any, T3]: ...
+
+
+@overload
+def ShelfView[T0, T1, T2, T3, T4, *Ts](
+    seq: Sequence[tuple[T0, T1, T2, T3, T4, *Ts]], index: Literal[4]
+) -> MapView[Any, T4]: ...
+
+
+@overload
+def ShelfView[T0, T1, T2, T3, T4, T5, *Ts](
+    seq: Sequence[tuple[T0, T1, T2, T3, T4, T5, *Ts]], index: Literal[5]
+) -> MapView[Any, T5]: ...
+
+
+@overload
+def ShelfView[T0, T1, T2, T3, T4, T5, T6, *Ts](
+    seq: Sequence[tuple[T0, T1, T2, T3, T4, T5, T6, *Ts]], index: Literal[6]
+) -> MapView[Any, T6]: ...
+
+
+@overload
+def ShelfView[T](seq: Sequence[Sequence[T]], index: int) -> MapView[Any, T]: ...
+
+
+def ShelfView(seq: Any, index: int) -> Sequence[Any]:
+    return MapView(seq, itemgetter(index))
+
+
+def LazySeq[T](length: int, mapfn: Callable[[int], T]) -> MapView[int, T]:
+    return MapView(range(length), mapfn)

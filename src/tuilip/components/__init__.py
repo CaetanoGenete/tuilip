@@ -23,7 +23,7 @@ from tuilip.components.types import (
     TOrNever,
 )
 from tuilip.components.utils import pollrefresh
-from tuilip.functional import rpadfn
+from tuilip.functional import identity, rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
 from tuilip.render.types import RendererContext, Loop
@@ -797,10 +797,14 @@ def _future_comp_impl[T, R](
 type FutureType[R] = Future[R] | Awaitable[R]
 
 
+U = TypeVar("U")
+
+
 @overload
 def loading(
     future: FutureType[Renderable[TOrNever] | None],
     *,
+    on_complete: None = ...,
     placeholder: Renderable[TOrNever] | None = ...,
     exit_on_complete: Literal[False] = ...,
 ) -> Component[TOrNever]: ...
@@ -810,12 +814,10 @@ def loading(
 def loading(
     future: FutureType[Renderable[TOrNever] | None],
     *,
+    on_complete: None = ...,
     placeholder: Renderable[TOrNever] | None = ...,
     exit_on_complete: Literal[True],
 ) -> Component[TOrNever | None]: ...
-
-
-U = TypeVar("U")
 
 
 @overload
@@ -841,10 +843,13 @@ def loading(
 def loading[R](
     future: FutureType[Any],
     *,
-    on_complete: Callable[[Any], Any] = lambda x: x,
+    on_complete: Callable[[Any], Any] | None = None,
     placeholder: Renderable[R] | None = None,
     exit_on_complete: bool = False,
 ) -> Component[Any]:
+    if on_complete is None:
+        on_complete = identity
+
     if not isinstance(future, Future):
         future = asyncio.ensure_future(future)
 
