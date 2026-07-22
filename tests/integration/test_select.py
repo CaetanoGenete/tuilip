@@ -1,12 +1,14 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, assert_type
 import pytest
 
 from more_itertools import one
 
 from tuilip.input.keys import Key
 from tuilip.tester import ComponentTester
-from tuilip.components import SELECT_MAX_BULLETS, SelectController, select
+from tuilip.components import SELECT_MAX_BULLETS, SelectController, select, selectn
+from tuilip.components.types import Component
+from tests.utils import identitycomp
 
 
 @pytest.mark.parametrize("nitems", [1, 5, 10, 11, 21])
@@ -14,7 +16,7 @@ def test_navigate(snapshot_path: Path, nitems: int) -> None:
     """Tests navigation of select using the arrow keys.
 
     1. Test navigation from 1,2,3...n,1 wraps
-    1. Test navigation from 1,n,n-1,...1 wraps
+    2. Test navigation from 1,n,n-1,...1 wraps
     """
 
     tester = ComponentTester(
@@ -176,3 +178,50 @@ def test_command_select_item() -> None:
 
     tester.next(Key.ASTERISK)
     assert tester.done and tester.ret == index
+
+
+# Type checks
+
+assert_type(
+    selectn("test"),
+    Component[int],
+)
+assert_type(
+    select(["test"]),
+    Component[int],
+)
+assert_type(
+    selectn("test1", "test2"),
+    Component[int],
+)
+assert_type(
+    select(["test1", "test2"]),
+    Component[int],
+)
+
+assert_type(
+    selectn(identitycomp("test")),
+    Component[str | int],
+)
+assert_type(
+    select([identitycomp("test")]),
+    Component[str | int],
+)
+
+assert_type(
+    selectn(identitycomp("test"), "other"),
+    Component[str | int],
+)
+assert_type(
+    select([identitycomp("test"), "other"]),
+    Component[str | int],
+)
+
+assert_type(
+    selectn(identitycomp("test"), sep=identitycomp(0.1)),
+    Component[str | int | float],
+)
+assert_type(
+    select([identitycomp("test")], sep=identitycomp(0.1)),
+    Component[str | int | float],
+)

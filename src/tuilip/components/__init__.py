@@ -118,7 +118,7 @@ type StdCommandsMap[C, *A] = Mapping[int | Key, Callable[[C, Unpack[A]], bool | 
 
 
 @component(noreturn=True)
-def noprop(comp: Component[TOrNever], *, n: int = 0) -> ComponentGen2[TOrNever, None]:
+def noprop(comp: Renderable[TOrNever], *, n: int = 0) -> ComponentGen2[TOrNever, None]:
     """Prevents 'key' from being passed down to components wrapped by this function.
 
     Args:
@@ -138,10 +138,7 @@ def noprop(comp: Component[TOrNever], *, n: int = 0) -> ComponentGen2[TOrNever, 
     yield comp
 
 
-def padding(
-    comp: Renderable[TOrNever],
-    indent: int,
-) -> Renderable[TOrNever]:
+def padding[T: Renderable[Any]](comp: T, indent: int) -> T:
     """Indents child component by `indent` units.
 
     This is a right translation of the entire component (and its descendants), relative
@@ -164,10 +161,10 @@ def padding(
         debug_name="padding",
         indent=indent,
     )
-    def result() -> ComponentGen2[TOrNever, None]:
+    def result() -> ComponentGen2[Any, None]:
         yield comp
 
-    return result()
+    return result() # type: ignore
 
 
 type Tab[R] = tuple[TextLike, Renderable[R]]
@@ -339,7 +336,7 @@ def tabview(
     *,
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
-    commands: TabviewCommandsMap[TOrNever] = DEFAULT_TABVIEW_COMMANDS,
+    commands: TabviewCommandsMap[TOrNever] | None = None,
 ) -> ComponentGen[TOrNever]:
     """Shows one component (from `tabs`) at a time.
 
@@ -351,6 +348,7 @@ def tabview(
     """
 
     controller = controller or TabController(tab=0)
+    commands = commands or DEFAULT_TABVIEW_COMMANDS
 
     last_tab = controller.tab
     while True:
@@ -373,7 +371,7 @@ def tabviewn(
     *tabs: Tab[TOrNever],
     heading: TabviewFormatter = DEFAULT_TABVIEW_HEADING,
     controller: TabController | None = None,
-    commands: TabviewCommandsMap[TOrNever] = DEFAULT_TABVIEW_COMMANDS,
+    commands: TabviewCommandsMap[TOrNever] | None = None,
 ) -> Component[TOrNever]:
     """Variadic interface for `tabview`.
 
@@ -491,7 +489,7 @@ type SelectCommandsMap[R] = StdCommandsMap[SelectController, Sequence[Renderable
 
 
 DEFAULT_ITEMS_PER_PAGE = 10
-DEFAULT_SELECT_COMMANDS: dict[int, Callable[[SelectController, Any], Any]] = {
+DEFAULT_SELECT_COMMANDS: SelectCommandsMap[Any] = {
     Key.UP: SelectController.prev,
     Key.DOWN: SelectController.next,
     Key.G_LOWER: rpadfn(SelectController.first),
@@ -511,7 +509,7 @@ def select(
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
-    commands: SelectCommandsMap[TOrNever] = DEFAULT_SELECT_COMMANDS,
+    commands: SelectCommandsMap[TOrNever] | None = None,
 ) -> ComponentGen2[TOrNever, int]:
     """Selects between 'comps'. Analogous to html <select>.
 
@@ -530,6 +528,7 @@ def select(
     assert items_per_page > 0, "must be positive"
 
     controller = controller or SelectController(index=0)
+    commands = commands or DEFAULT_SELECT_COMMANDS
 
     if cursor is None:
         cursor = "> "
@@ -585,7 +584,7 @@ def selectn(
     cursor: TextLike | None = None,
     items_per_page: int = DEFAULT_ITEMS_PER_PAGE,
     controller: SelectController | None = None,
-    commands: SelectCommandsMap[TOrNever] = DEFAULT_SELECT_COMMANDS,
+    commands: SelectCommandsMap[TOrNever] | None = None,
 ) -> Component[TOrNever | int]:
     """Variadic interface for `select`.
 

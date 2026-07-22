@@ -21,7 +21,6 @@ package = true
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.0",
     "pyright>=1.1.411",
     "pytest>=9.0.3",
     "ruff>=0.15.16",

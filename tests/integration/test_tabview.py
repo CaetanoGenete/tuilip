@@ -1,8 +1,11 @@
 from dataclasses import replace
+from typing import assert_type, Never
 from more_itertools import one
 from itertools import repeat
 from pathlib import Path
 
+from tests.utils import identitycomp
+from tuilip.components.types import Component
 from tuilip.components import (
     TabController,
     select,
@@ -150,3 +153,60 @@ def test_no_rebuild(snapshot_path: Path) -> None:
 
         tester.next(Key.DOWN)
         assert not one(tester.find("./tabview")).rebuilt
+
+
+# type checks
+
+assert_type(
+    tabview([("test-tab", "content")]),
+    Component[Never],
+)
+assert_type(
+    tabviewn(("test-tab", "content")),
+    Component[Never],
+)
+
+assert_type(
+    tabview([("test-tab", identitycomp(10))]),
+    Component[int],
+)
+assert_type(
+    tabviewn(("test-tab", identitycomp(10))),
+    Component[int],
+)
+
+assert_type(
+    tabview([("test-tab", identitycomp(31.2))]),
+    Component[float],
+)
+assert_type(
+    tabviewn(("test-tab", identitycomp(31.2))),
+    Component[float],
+)
+
+assert_type(
+    tabview([("test-tab-1", "content 1"), ("test-tab-2", "content 2")]),
+    Component[Never],
+)
+assert_type(
+    tabviewn(("test-tab-1", "content 1"), ("test-tab-2", "content 2")),
+    Component[Never],
+)
+
+assert_type(
+    tabview([("test-tab-1", identitycomp(10)), ("test-tab-2", "content 2")]),
+    Component[int],
+)
+assert_type(
+    tabviewn(("test-tab-1", identitycomp(10)), ("test-tab-2", "content 2")),
+    Component[int],
+)
+
+assert_type(
+    tabview([("test-tab-1", identitycomp(10)), ("test-tab-2", identitycomp("str"))]),
+    Component[int | str],
+)
+assert_type(
+    tabviewn(("test-tab-1", identitycomp(10)), ("test-tab-2", identitycomp("str"))),
+    Component[int | str],
+)

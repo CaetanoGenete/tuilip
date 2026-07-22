@@ -1,8 +1,12 @@
+from typing import Never, assert_type
+
 import pytest
 from more_itertools import take
 from tuilip.components import noprop
+from tuilip.components.types import Component
 from tuilip.input.keys import Key
 from tuilip.tester import ComponentTester, MockCompState, mockcomp
+from tests.utils import identitycomp
 
 
 @pytest.mark.parametrize("n", range(1, 10))
@@ -31,3 +35,21 @@ def test_noprop_indefinitely() -> None:
         assert mockstate.key == Key.NULL
 
     assert not tester.done
+
+
+# type checks
+
+assert_type(
+    noprop("test"),
+    Component[Never],
+)
+
+assert_type(
+    noprop(identitycomp(10)),
+    Component[int],
+)
+
+assert_type(
+    noprop(identitycomp(31.2)),
+    Component[float],
+)

@@ -9,7 +9,7 @@ from xml.etree.ElementTree import Element
 from xml.etree.ElementPath import iterfind
 
 from tuilip.components import component
-from tuilip.components.types import Component, ComponentGen, TOrNever
+from tuilip.components.types import Component, TOrNever, ComponentGen
 from tuilip.input.keys import Key
 from tuilip.render import render_animations, build_it, resolve_indent
 from tuilip.render.anim import AnimatedText
