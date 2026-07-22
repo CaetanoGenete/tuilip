@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any, Awaitable, Generator, Iterable
 
 from tuilip.input.keys import Key
-from tuilip.components import ComponentGen, ComponentGen2, seqn, seq
+from tuilip.components import ComponentGen, ComponentGen2, FutureBehaviour, seqn
 from tuilip.components import component
 from tuilip.components.types import Component
 from tuilip.render.anim import loading_spinner_1
@@ -11,11 +11,10 @@ from tuilip.components.utils import pollcond
 import asyncio
 import random
 
-from tuilip.components import loading
+from tuilip.components import futurecomp
 from tuilip.render.anim import animated_text
 from tuilip.render.std import arender
 from tuilip.render.text import Text
-from tuilip.render.types import Loop
 
 
 @component
@@ -72,38 +71,30 @@ def _aloadinglist_text(
         yield controller.from_task(task)
 
 
-@component
-def _aloadinglist_completed[R](values: list[R]) -> ComponentGen[list[R]]:
-    yield Loop.NOPOLL
-    return values
-
-
 @component(noreturn=True)
 def aloadinglist[R](
     futs: Iterable[Awaitable[R]],
     controller: LoadingController | None = None,
-) -> ComponentGen2[list[R], None]:
+) -> ComponentGen2[list[R] | BaseException, None]:
     controller = controller or LoadingController("loading...")
 
     tasks = list(map(asyncio.ensure_future, futs))
     yield seqn(
         *(
-            loading(
+            futurecomp(
                 future=task,
-                on_complete=lambda _, c=controller, f=task: Text("✓ ", c.from_task(f)),
-                placeholder=seq(
-                    [
-                        loading_spinner_1(),
-                        _aloadinglist_text(task, controller),
-                    ],
+                on_success=lambda _, c=controller, f=task: Text("✓ ", c.from_task(f)),
+                on_pending=seqn(
+                    loading_spinner_1(),
+                    _aloadinglist_text(task, controller),
                     sep=" ",
                 ),
             )
             for task in tasks
         ),
-        loading(
+        futurecomp(
             asyncio.gather(*tasks),
-            on_complete=_aloadinglist_completed,
+            behaviour=FutureBehaviour.RETURN_RESULT,
         ),
         sep="\n",
     )
@@ -112,7 +103,7 @@ def aloadinglist[R](
 def aloadinglistn[R](
     *futs: Awaitable[R],
     controller: LoadingController | None = None,
-) -> Component[list[R]]:
+) -> Component[list[R] | BaseException]:
     return aloadinglist(futs, controller=controller)
 
 

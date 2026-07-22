@@ -177,8 +177,6 @@ def loop[R](
                 key = Key.NULL
                 continue
 
-            # Handle animation + key-input
-
             while True:
                 if (key := input_handler.read(clock.delta())) != -1:
                     break
@@ -212,8 +210,6 @@ async def aloop[R](
             if not poll:
                 key = Key.NULL
                 continue
-
-            # Handle animation + key-input
 
             key_task = asyncio.create_task(input_handler.read())
             while True:

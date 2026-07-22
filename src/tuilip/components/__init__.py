@@ -2,6 +2,7 @@ from collections.abc import Mapping, Sequence
 import asyncio
 from concurrent.futures import Future
 from dataclasses import dataclass
+from enum import IntEnum
 from functools import partial, wraps
 from typing import (
     Any,
@@ -11,10 +12,10 @@ from typing import (
     Iterable,
     Literal,
     Never,
-    TypeVar,
     Unpack,
     overload,
 )
+from typing_extensions import TypeVar
 from tuilip.components.types import (
     Component,
     ComponentGen,
@@ -23,7 +24,7 @@ from tuilip.components.types import (
     TOrNever,
 )
 from tuilip.components.utils import pollrefresh
-from tuilip.functional import identity, rpadfn
+from tuilip.functional import rpadfn
 from tuilip.input.keys import Key
 from tuilip.math import divup
 from tuilip.render.types import RendererContext, Loop
@@ -164,7 +165,7 @@ def padding[T: Renderable[Any]](comp: T, indent: int) -> T:
     def result() -> ComponentGen2[Any, None]:
         yield comp
 
-    return result() # type: ignore
+    return result()  # type: ignore
 
 
 type Tab[R] = tuple[TextLike, Renderable[R]]
@@ -769,95 +770,137 @@ def prompt(
             controller.insert(key)
 
 
+class FutureBehaviour(IntEnum):
+    RETURN_NONE = 0
+    RETURN_NEVER = 1
+    RETURN_RESULT = 2
+
+
 def _future_comp_impl[T, R](
     fut: Future[T] | asyncio.Task[T],
     *,
-    on_complete: Callable[[T], Renderable[R] | None],
-    placeholder: Renderable[R] | None,
-    exit_on_complete: bool,
-) -> ComponentGen2[R, None]:
+    on_success: Callable[[T], Renderable[R] | None] | None = None,
+    on_error: Callable[[BaseException], Renderable[R] | None] | None,
+    on_pending: Renderable[R] | None,
+    behaviour: FutureBehaviour,
+) -> ComponentGen2[R, T | BaseException | None]:
     context = RendererContext.get()
     fut.add_done_callback(lambda _: context.input_handler.interrupt())
 
-    yield placeholder
+    yield on_pending
     yield Loop.POLLINPUT
 
-    while True:
-        if fut.done():
-            yield on_complete(fut.result())
-            if exit_on_complete:
-                yield Loop.NOPOLL
-
-            break
-
+    while not fut.done():
         yield Loop.NOCHANGE
+
+    try:
+        result = fut.result()
+    except BaseException as e:
+        result = e
+        if on_error is not None:
+            yield on_error(result)
+    else:
+        if on_success is not None:
+            yield on_success(result)
+
+    match behaviour:
+        case FutureBehaviour.RETURN_NONE:
+            yield Loop.NOPOLL
+        case FutureBehaviour.RETURN_NEVER:
+            pass
+        case FutureBehaviour.RETURN_RESULT:
+            yield Loop.NOPOLL
+            return result
 
 
 type FutureType[R] = Future[R] | Awaitable[R]
-
-
 U = TypeVar("U")
 
 
 @overload
-def loading(
-    future: FutureType[Renderable[TOrNever] | None],
+def futurecomp(
+    future: FutureType[U],
     *,
-    on_complete: None = ...,
-    placeholder: Renderable[TOrNever] | None = ...,
-    exit_on_complete: Literal[False] = ...,
+    on_success: Callable[[U], Renderable[TOrNever] | None],
+    on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
+    on_pending: Renderable[TOrNever] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_NEVER] = ...,
 ) -> Component[TOrNever]: ...
 
 
 @overload
-def loading(
-    future: FutureType[Renderable[TOrNever] | None],
-    *,
-    on_complete: None = ...,
-    placeholder: Renderable[TOrNever] | None = ...,
-    exit_on_complete: Literal[True],
-) -> Component[TOrNever | None]: ...
-
-
-@overload
-def loading(
-    future: FutureType[U],
-    *,
-    on_complete: Callable[[U], Renderable[TOrNever] | None],
-    placeholder: Renderable[TOrNever] | None = ...,
-    exit_on_complete: Literal[False] = ...,
-) -> Component[TOrNever]: ...
-
-
-@overload
-def loading(
-    future: FutureType[U],
-    *,
-    on_complete: Callable[[U], Renderable[TOrNever] | None],
-    placeholder: Renderable[TOrNever] | None = ...,
-    exit_on_complete: Literal[True] = ...,
-) -> Component[TOrNever | None]: ...
-
-
-def loading[R](
+def futurecomp(
     future: FutureType[Any],
     *,
-    on_complete: Callable[[Any], Any] | None = None,
-    placeholder: Renderable[R] | None = None,
-    exit_on_complete: bool = False,
-) -> Component[Any]:
-    if on_complete is None:
-        on_complete = identity
+    on_success: None = ...,
+    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
+    on_pending: Renderable[Any] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_NEVER] = ...,
+) -> Component[Never]: ...
 
+
+@overload
+def futurecomp(
+    future: FutureType[U],
+    *,
+    on_success: Callable[[U], Renderable[TOrNever] | None],
+    on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
+    on_pending: Renderable[TOrNever] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_NONE] = ...,
+) -> Component[TOrNever | None]: ...
+
+
+@overload
+def futurecomp(
+    future: FutureType[Any],
+    *,
+    on_success: None = ...,
+    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
+    on_pending: Renderable[Any] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_NONE] = ...,
+) -> Component[None]: ...
+
+
+@overload
+def futurecomp(
+    future: FutureType[U],
+    *,
+    on_success: Callable[[U], Renderable[TOrNever] | None],
+    on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
+    on_pending: Renderable[TOrNever] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_RESULT] = ...,
+) -> Component[TOrNever | BaseException | U]: ...
+
+
+@overload
+def futurecomp(
+    future: FutureType[U],
+    *,
+    on_success: None = ...,
+    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
+    on_pending: Renderable[Any] | None = ...,
+    behaviour: Literal[FutureBehaviour.RETURN_RESULT] = ...,
+) -> Component[BaseException | U]: ...
+
+
+def futurecomp(
+    future: FutureType[Any],
+    *,
+    on_success: Callable[[Any], Renderable[Any] | None] | None = None,
+    on_error: Callable[[BaseException], Renderable[Any] | None] | None = None,
+    on_pending: Renderable[Any] | None = None,
+    behaviour: FutureBehaviour = FutureBehaviour.RETURN_NEVER,
+) -> Component[Any]:
     if not isinstance(future, Future):
         future = asyncio.ensure_future(future)
 
     return component(
         _future_comp_impl,
-        noreturn=not exit_on_complete,
+        noreturn=behaviour == FutureBehaviour.RETURN_NEVER,
     )(
         future,
-        on_complete=on_complete,
-        placeholder=placeholder,
-        exit_on_complete=exit_on_complete,
+        on_success=on_success,
+        on_error=on_error,
+        on_pending=on_pending,
+        behaviour=behaviour,
     )

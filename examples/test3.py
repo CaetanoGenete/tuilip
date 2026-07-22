@@ -2,11 +2,12 @@ from tuilip.input.keys import Key
 from tuilip.components import ComponentGen
 from tuilip.components import component
 from tuilip.components.utils import pollcond
+from tuilip.functional import identity
 from tuilip.components import seq
 import asyncio
 import random
 
-from tuilip.components import loading
+from tuilip.components import futurecomp
 from tuilip.render.std import arender
 from tuilip.render.text import Text
 
@@ -30,9 +31,10 @@ async def main() -> None:
         Text("Header:\n"),
         seq(
             [
-                loading(
+                futurecomp(
                     process(),
-                    placeholder="waiting...",
+                    on_success=identity,
+                    on_pending="waiting...",
                 )
                 for _ in range(10)
             ],
