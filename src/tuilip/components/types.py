@@ -11,10 +11,10 @@ if TYPE_CHECKING:
     from tuilip.render.types import Loop
     from tuilip.render.text import TextLike, Text
 
+
 TOrNever = TypeVar("TOrNever", default=Never)
 
-type StaticRenderable = TextLike | AnimatedText
-type Renderable[R] = Component[R] | StaticRenderable
+type Renderable[R] = Component[R] | TextLike | AnimatedText
 
 type ComponentYieldT[R] = Renderable[R] | Loop | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]

@@ -10,12 +10,12 @@ from typing import (
     Callable,
     Generator,
     Iterable,
+    TypeVar,
     Literal,
     Never,
     Unpack,
     overload,
 )
-from typing_extensions import TypeVar
 from tuilip.components.types import (
     Component,
     ComponentGen,
@@ -843,10 +843,9 @@ def futurecomp(
 ) -> Component[Any]:
     """Component dependent on lifecycle of a future value.
 
-    The return value of this component can be changed by the `behaviour` param:
-
-        RETURN_NEVER: marks this component as `noreturn`.
-        RETURN_RESULT: Returns the result of the future or an Exception.
+    The return value of this component can be changed by the `behaviour` parameter:
+    - RETURN_NEVER: marks this component as `noreturn`.
+    - RETURN_RESULT: Returns the result of the future or an Exception.
 
     Supports both concurrent Futures and asyncio Tasks, if a coroutine is provided, it
     is automatically wrapped in a Task.
