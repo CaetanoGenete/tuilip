@@ -29,20 +29,15 @@ def pollcond[**P](
         NO_CHANGE signals, until conditions are satisfied.
     """
 
-    returned = False
-
     key = yield Loop.POLLINPUT
     while True:
         if key in commands and commands[key](*args, **kwargs):
-            returned = True
-            break
+            return PollResult(True, key)
 
         if poll(*args, **kwargs):
-            break
+            return PollResult(False, key)
 
         key = yield Loop.NOCHANGE
-
-    return PollResult(returned, key)
 
 
 class RefreshableController(Protocol):
@@ -79,7 +74,7 @@ def pollrefresh[**P, C: RefreshableController](
         kwargs: Addtional keyword args to pass to commands callable.
 
     Yields:
-        NO_CHANGE signals, until conditions are satisfied.
+        NOCHANGE until conditions are satisfied.
     """
 
     result = yield from pollcond(

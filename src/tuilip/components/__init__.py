@@ -771,9 +771,8 @@ def prompt(
 
 
 class FutureBehaviour(IntEnum):
-    RETURN_NONE = 0
-    RETURN_NEVER = 1
-    RETURN_RESULT = 2
+    RETURN_NEVER = 0
+    RETURN_RESULT = 1
 
 
 def _future_comp_impl[T, R](
@@ -798,19 +797,14 @@ def _future_comp_impl[T, R](
     except BaseException as e:
         result = e
         if on_error is not None:
-            yield on_error(result)
+            yield on_error(e)
     else:
         if on_success is not None:
             yield on_success(result)
 
-    match behaviour:
-        case FutureBehaviour.RETURN_NONE:
-            yield Loop.NOPOLL
-        case FutureBehaviour.RETURN_NEVER:
-            pass
-        case FutureBehaviour.RETURN_RESULT:
-            yield Loop.NOPOLL
-            return result
+    if behaviour == FutureBehaviour.RETURN_RESULT:
+        yield Loop.NOPOLL
+        return result
 
 
 type FutureType[R] = Future[R] | Awaitable[R]
@@ -821,7 +815,7 @@ U = TypeVar("U")
 def futurecomp(
     future: FutureType[U],
     *,
-    on_success: Callable[[U], Renderable[TOrNever] | None],
+    on_success: Callable[[U], Renderable[TOrNever] | None] | None = None,
     on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
     on_pending: Renderable[TOrNever] | None = ...,
     behaviour: Literal[FutureBehaviour.RETURN_NEVER] = ...,
@@ -830,57 +824,13 @@ def futurecomp(
 
 @overload
 def futurecomp(
-    future: FutureType[Any],
-    *,
-    on_success: None = ...,
-    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
-    on_pending: Renderable[Any] | None = ...,
-    behaviour: Literal[FutureBehaviour.RETURN_NEVER] = ...,
-) -> Component[Never]: ...
-
-
-@overload
-def futurecomp(
     future: FutureType[U],
     *,
-    on_success: Callable[[U], Renderable[TOrNever] | None],
-    on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
-    on_pending: Renderable[TOrNever] | None = ...,
-    behaviour: Literal[FutureBehaviour.RETURN_NONE] = ...,
-) -> Component[TOrNever | None]: ...
-
-
-@overload
-def futurecomp(
-    future: FutureType[Any],
-    *,
-    on_success: None = ...,
-    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
-    on_pending: Renderable[Any] | None = ...,
-    behaviour: Literal[FutureBehaviour.RETURN_NONE] = ...,
-) -> Component[None]: ...
-
-
-@overload
-def futurecomp(
-    future: FutureType[U],
-    *,
-    on_success: Callable[[U], Renderable[TOrNever] | None],
+    on_success: Callable[[U], Renderable[TOrNever] | None] | None = None,
     on_error: Callable[[BaseException], Renderable[TOrNever] | None] | None = ...,
     on_pending: Renderable[TOrNever] | None = ...,
     behaviour: Literal[FutureBehaviour.RETURN_RESULT] = ...,
 ) -> Component[TOrNever | BaseException | U]: ...
-
-
-@overload
-def futurecomp(
-    future: FutureType[U],
-    *,
-    on_success: None = ...,
-    on_error: Callable[[BaseException], Renderable[Any] | None] | None = ...,
-    on_pending: Renderable[Any] | None = ...,
-    behaviour: Literal[FutureBehaviour.RETURN_RESULT] = ...,
-) -> Component[BaseException | U]: ...
 
 
 def futurecomp(
@@ -891,6 +841,26 @@ def futurecomp(
     on_pending: Renderable[Any] | None = None,
     behaviour: FutureBehaviour = FutureBehaviour.RETURN_NEVER,
 ) -> Component[Any]:
+    """Component dependent on lifecycle of a future value.
+
+    The return value of this component can be changed by the `behaviour` param:
+
+        RETURN_NEVER: marks this component as `noreturn`.
+        RETURN_RESULT: Returns the result of the future or an Exception.
+
+    Supports both concurrent Futures and asyncio Tasks, if a coroutine is provided, it
+    is automatically wrapped in a Task.
+
+    Args:
+        future: An asyncio Awaitable or a concurrent Future.
+        on_success: Renderable to yield on successfull `future` completion. If None, yields nothing.
+        on_error: Renderable to yield on erroneous `future` completion. If None, yields nothing.
+        on_pending: Renderable to yield before `future` has completed. If None, yields nothing.
+        behaviour: Behaviour of component upon `future` completion.
+
+    Returns:
+        A component.
+    """
     if not isinstance(future, Future):
         future = asyncio.ensure_future(future)
 

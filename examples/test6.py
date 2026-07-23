@@ -63,7 +63,7 @@ async def process(i: int) -> str:
 
 
 @animated_text
-def _aloadinglist_text(
+def _statuslist_text(
     task: asyncio.Task[Any],
     controller: LoadingController,
 ) -> Generator[str | Text, None, None]:
@@ -72,7 +72,7 @@ def _aloadinglist_text(
 
 
 @component(noreturn=True)
-def aloadinglist[R](
+def statuslist[R](
     futs: Iterable[Awaitable[R]],
     controller: LoadingController | None = None,
 ) -> ComponentGen2[list[R] | BaseException, None]:
@@ -86,7 +86,7 @@ def aloadinglist[R](
                 on_success=lambda _, c=controller, f=task: Text("✓ ", c.from_task(f)),
                 on_pending=seqn(
                     loading_spinner_1(),
-                    _aloadinglist_text(task, controller),
+                    _statuslist_text(task, controller),
                     sep=" ",
                 ),
             )
@@ -100,17 +100,17 @@ def aloadinglist[R](
     )
 
 
-def aloadinglistn[R](
+def statuslistn[R](
     *futs: Awaitable[R],
     controller: LoadingController | None = None,
 ) -> Component[list[R] | BaseException]:
-    return aloadinglist(futs, controller=controller)
+    return statuslist(futs, controller=controller)
 
 
 async def main() -> None:
     result = await arender(
-        Text("Header:\n"),
-        aloadinglistn(
+        "Header:\n",
+        statuslistn(
             process(0),
             process(1),
             process(2),
