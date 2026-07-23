@@ -26,13 +26,6 @@ dev = [
     "ruff>=0.15.16",
 ]
 
-[tool.mypy]
-allow_redefinition = true
-exclude = [
-    "^src/tuilip/input/win32.py",
-    "^src/tuilip/input/posix.py"
-]
-
 [tool.pyright]
 typeCheckingMode = "strict"
 reportUnnecessaryTypeIgnoreComment = true

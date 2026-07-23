@@ -324,11 +324,11 @@ def tabview_fixed(
 type TabviewCommandsMap[R] = StdCommandsMap[TabController, Sequence[Tab[R]]]
 
 
+DEFAULT_TABVIEW_HEADING = tabview_compact(3)
 DEFAULT_TABVIEW_COMMANDS: TabviewCommandsMap[Any] = {
     Key.LEFT: rpadfn(TabController.prev),
     Key.RIGHT: TabController.next,
 }
-DEFAULT_TABVIEW_HEADING = tabview_compact(3)
 
 
 @component
@@ -490,6 +490,7 @@ type SelectCommandsMap[R] = StdCommandsMap[SelectController, Sequence[Renderable
 
 
 DEFAULT_ITEMS_PER_PAGE = 10
+SELECT_MAX_BULLETS = 10
 DEFAULT_SELECT_COMMANDS: SelectCommandsMap[Any] = {
     Key.UP: SelectController.prev,
     Key.DOWN: SelectController.next,
@@ -499,7 +500,6 @@ DEFAULT_SELECT_COMMANDS: SelectCommandsMap[Any] = {
     Key.END: SelectController.last,
     Key.CR: rpadfn(SelectController.select),
 }
-SELECT_MAX_BULLETS = 10
 
 
 @component
