@@ -9,7 +9,7 @@ from xml.etree.ElementTree import Element
 from xml.etree.ElementPath import iterfind
 
 from tuilip.components import component
-from tuilip.components.types import Component, TOrNever, ComponentGen
+from tuilip.components.types import CompCacheChild, Component, TOrNever, ComponentGen
 from tuilip.input.keys import Key
 from tuilip.render import render_animations, build_it, resolve_indent
 from tuilip.render.anim import AnimatedText
@@ -54,15 +54,13 @@ class ComponentQueryResult:
 class ComponentTester(Generic[TOrNever]):
     comp: Component[TOrNever]
     anim_frame: int = 0
-
     frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
-
     ret: TOrNever | None = field(default=None, init=False)
     done: bool = field(default=False, init=False)
 
     def __post_init__(self) -> None:
         self.__render_it = build_it([self.comp])
-        self.__build_id: dict[int, int] = {}
+        self.__build_idx = 0
 
         self.next(None)  # type: ignore
 
@@ -81,23 +79,6 @@ class ComponentTester(Generic[TOrNever]):
                 raise NoMoreFramesError()
 
             key = key_stack.pop()
-
-            if not key_stack:
-                self.__build_id = {}
-
-                stack = [self.comp]
-                while stack:
-                    curr = stack.pop()
-                    cache = curr.cache
-
-                    # On rebuild, children list is always recreated
-                    self.__build_id[id(curr)] = id(cache.children)
-                    stack.extend(
-                        child
-                        for child in reversed(cache.children)
-                        if not isinstance(child, (Text, AnimatedText))
-                    )
-
             try:
                 screen, poll = self.__render_it.send(key)
             except StopIteration as e:
@@ -105,55 +86,57 @@ class ComponentTester(Generic[TOrNever]):
                 self.done = True
                 continue
 
+            self.__build_idx += 1
+
             if not poll:
                 key_stack.append(Key.NULL)
 
             rendered = render_animations(screen, self.anim_frame)
             rendered = resolve_indent(rendered)
             rendered = apply_styles(rendered, DEFAULT_THEME)
-
             self.frames.append(TestFrame(key=key, rendered=rendered))
-
-    def _to_xml_element(self, comp: Component[Any]) -> Element:
-        prev_id = self.__build_id.get(id(comp))
-        curr_id = id(comp.cache.children)
-
-        parent = Element(
-            comp.debug_name,
-            attrib={
-                "noreturn": str(comp.noreturn).lower(),
-                "indent": str(comp.indent).lower(),
-                "rebuilt": str(curr_id != prev_id),
-            },
-        )
-
-        if comp.cache:
-            last: Element | None = None
-            for child_comp in comp.cache.children:
-                match child_comp:
-                    case Text():
-                        if last is None:
-                            parent.text = str(child_comp)
-                        else:
-                            last.tail = str(child_comp)
-                    case AnimatedText():
-                        last = Element(
-                            "animatedtext",
-                            attrib={
-                                "period": str(child_comp.period),
-                                "next": str(child_comp.next_frame),
-                            },
-                        )
-                        parent.append(last)
-                    case Component():
-                        last = self._to_xml_element(child_comp)
-                        parent.append(last)
-
-        return parent
 
     def find(self, xpath: str) -> Iterator[ComponentQueryResult]:
         root = Element("root")
-        root.append(self._to_xml_element(self.comp))
+
+        stack: list[tuple[Element, CompCacheChild[Any]]] = [(root, self.comp)]
+
+        last = root
+        while stack:
+            parent, curr = stack.pop()
+
+            if isinstance(curr, Text):
+                last.tail = str(curr)
+                continue
+
+            if isinstance(curr, AnimatedText):
+                parent.append(
+                    Element(
+                        "animatedtext",
+                        attrib={
+                            "period": str(curr.period),
+                            "next": str(curr.next_frame),
+                        },
+                    )
+                )
+                continue
+
+            last = Element(
+                curr.debug_name,
+                attrib={
+                    "noreturn": str(curr.noreturn).lower(),
+                    "indent": str(curr.indent).lower(),
+                    "rebuilt": str(self.__build_idx == curr.cache.build_index),
+                },
+            )
+            parent.append(last)
+
+            children = curr.cache.children
+            if children and isinstance(child := children[0], Text):
+                last.text = str(child)
+                children = children[1:]
+
+            stack.extend([(last, comp) for comp in reversed(children)])
 
         for child in iterfind(root, xpath):
             yield ComponentQueryResult(
