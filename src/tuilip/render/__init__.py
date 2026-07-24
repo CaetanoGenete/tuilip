@@ -45,6 +45,8 @@ def build_it[R](
     )
 
     key = 0
+
+    build_index = 0
     while True:
         screen: BuildOutput = []
 
@@ -76,9 +78,15 @@ def build_it[R](
             genstate = getgeneratorstate(comp.gen)
             created = genstate is not GEN_CREATED
 
-            if comp.noreturn and genstate is GEN_CLOSED:
+            if (
+                comp.cache.build_index == build_index
+                or comp.noreturn
+                and genstate is GEN_CLOSED
+            ):
                 stack.extend(reversed(comp.cache.children))
                 continue
+
+            comp.cache.build_index = build_index
 
             if stacklen >= noprop_idx:
                 effective_key = 0
@@ -149,6 +157,7 @@ def build_it[R](
             stack.extend(reversed(new_children))
 
         key = yield screen, poll
+        build_index += 1
 
 
 def loop[R](

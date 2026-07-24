@@ -24,6 +24,7 @@ type CompCacheChild[R] = Component[R] | Text | AnimatedText
 
 @dataclass(slots=True)
 class CompCache[R]:
+    build_index: int = -1
     propkey: bool = True
     children: list[CompCacheChild[R]] = field(default_factory=list[Any])
 

@@ -2,7 +2,8 @@ from contextlib import nullcontext
 from typing import ContextManager, final, override
 
 import pytest
-from tuilip.components import component
+from tuilip.components import component, seqn
+from tuilip.tester import ComponentTester, MockCompState, mockcomp
 from tuilip.render import loop
 from tuilip.components.types import ComponentGen
 from tuilip.input import BlockingInputHandler
@@ -51,3 +52,18 @@ def test_infinite_component_error() -> None:
     errmsg = str(e.value)
     assert __file__ in errmsg
     assert bad_comp.debug_name in errmsg
+
+
+def test_component_builds_only_once() -> None:
+    """Checks a component, which appears multiple times in the layout tree, builds only
+    once per cycle.
+    """
+
+    comp_state = MockCompState()
+    comp = mockcomp(comp_state)
+
+    tester = ComponentTester(seqn(comp, comp))
+
+    assert comp_state.builds == 0
+    tester.next(Key.A)
+    assert comp_state.builds == 1
