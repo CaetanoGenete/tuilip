@@ -15,7 +15,7 @@ from tuilip.components import (
 )
 from tuilip.functional import atend
 from tuilip.input.keys import Key
-from tuilip.tester import ComponentTester, MockCompState, mockcomp
+from tuilip.tester import component_tester, MockCompState, mockcomp
 
 
 def test_compact(snapshot_path: Path) -> None:
@@ -29,14 +29,12 @@ def test_compact(snapshot_path: Path) -> None:
 
     tabs_per_page = 3
 
-    tester = ComponentTester(
-        tabview(
-            [(f"tab {i}", f"Content for tab: tab {i}") for i in range(4)],
-            heading=tabview_compact(tabs_per_page, " "),
-        ),
+    comp = tabview(
+        [(f"tab {i}", f"Content for tab: tab {i}") for i in range(4)],
+        heading=tabview_compact(tabs_per_page, " "),
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         tester.next(Key.LEFT)
         tester.next(*repeat(Key.RIGHT, tabs_per_page + 1))
         tester.next(Key.LEFT)
@@ -45,15 +43,13 @@ def test_compact(snapshot_path: Path) -> None:
 def test_with_interactible_tab(snapshot_path: Path) -> None:
     """Tests tabview tab remains interactible."""
 
-    tester = ComponentTester(
-        tabviewn(
-            ("tab 1", "Some text"),
-            ("tab 2", select([f"item {i}" for i in range(5)])),
-            heading=tabview_compact(3, " "),
-        ),
+    comp = tabviewn(
+        ("tab 1", "Some text"),
+        ("tab 2", select([f"item {i}" for i in range(5)])),
+        heading=tabview_compact(3, " "),
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         assert atend(tester.find(".//select"))
         tester.next(Key.RIGHT)
         assert not atend(tester.find(".//select"))
@@ -67,14 +63,12 @@ def test_noprop(snapshot_path: Path) -> None:
     tab1 = MockCompState(id="tab1")
     tab2 = MockCompState(id="tab2")
 
-    tester = ComponentTester(
-        tabviewn(
-            ("tab 1", mockcomp(tab1)),
-            ("tab 2", mockcomp(tab2)),
-        ),
+    comp = tabviewn(
+        ("tab 1", mockcomp(tab1)),
+        ("tab 2", mockcomp(tab2)),
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         # Check key still propogates if overflowing to the left.
         tester.next(Key.LEFT)
         assert tab1.key == Key.LEFT
@@ -112,15 +106,13 @@ def test_controller(snapshot_path: Path) -> None:
     """
 
     controller = TabController(tab=1)
-    tester = ComponentTester(
-        tabview(
-            [(f"tab {i}", f"Content for tab: tab {i}") for i in range(4)],
-            heading=tabview_compact(3, " "),
-            controller=controller,
-        ),
+    comp = tabview(
+        [(f"tab {i}", f"Content for tab: tab {i}") for i in range(4)],
+        heading=tabview_compact(3, " "),
+        controller=controller,
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         for tab in (2, 0, 3):
             controller.tab = tab
             controller.refresh = True
@@ -137,15 +129,13 @@ def test_controller(snapshot_path: Path) -> None:
 def test_no_rebuild(snapshot_path: Path) -> None:
     """Tests tabview doesn't rebuild if pressed key not in commands."""
 
-    tester = ComponentTester(
-        tabviewn(
-            ("tab 1", mockcomp(id="tab1")),
-            ("tab 2", mockcomp(id="tab2")),
-            heading=tabview_compact(3, " "),
-        ),
+    comp = tabviewn(
+        ("tab 1", mockcomp(id="tab1")),
+        ("tab 2", mockcomp(id="tab2")),
+        heading=tabview_compact(3, " "),
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         tester.next(Key.DOWN)
         assert not one(tester.find("./tabview")).rebuilt
 

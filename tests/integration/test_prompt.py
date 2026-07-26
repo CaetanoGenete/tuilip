@@ -4,7 +4,7 @@ import pytest
 
 from tuilip.components import PromptController, prompt
 from tuilip.input.keys import Key
-from tuilip.tester import ComponentTester
+from tuilip.tester import component_tester
 
 
 def _wrap_cursor(cursor: int, promptlen: int) -> int:
@@ -19,9 +19,9 @@ def test_set_cursor(snapshot_path: Path, pos: int) -> None:
     init_prompt = "A test string or something..."
 
     controller = PromptController(init_prompt)
-    tester = ComponentTester(prompt(controller=controller))
+    comp = prompt(controller=controller)
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         controller.cursor = _wrap_cursor(pos, len(init_prompt))
         tester.next(Key.NULL)
 
@@ -123,15 +123,14 @@ class _DeleteWordTestCase:
 )
 def test_delete_word(test_case: _DeleteWordTestCase) -> None:
     controller = PromptController(test_case.init_prompt, test_case.init_cursor)
-    tester = ComponentTester(
-        prompt(controller=controller, commands={Key.LF: PromptController.select})
-    )
+    comp = prompt(controller=controller, commands={Key.LF: PromptController.select})
 
-    controller.delword()
-    tester.next(Key.LF)
+    with component_tester(comp) as tester:
+        controller.delword()
+        tester.next(Key.LF)
 
-    assert controller.cursor == test_case.final_cursor
-    assert tester.ret == test_case.final_prompt
+        assert controller.cursor == test_case.final_cursor
+        assert tester.ret == test_case.final_prompt
 
 
 @dataclass
@@ -175,18 +174,17 @@ def test_delete_char(test_case: _TestDeleteCharTestCase) -> None:
         test_case.init_prompt,
         _wrap_cursor(test_case.init_cursor, len(test_case.init_prompt)),
     )
-    tester = ComponentTester(
-        prompt(
-            controller=controller,
-            commands={Key.LF: PromptController.select},
+    comp = prompt(
+        controller=controller,
+        commands={Key.LF: PromptController.select},
+    )
+
+    with component_tester(comp) as tester:
+        controller.delchar()
+        tester.next(Key.LF)
+
+        assert tester.ret == test_case.final_prompt
+        assert controller.cursor == _wrap_cursor(
+            test_case.final_cursor,
+            len(controller.prompt),
         )
-    )
-
-    controller.delchar()
-    tester.next(Key.LF)
-
-    assert tester.ret == test_case.final_prompt
-    assert controller.cursor == _wrap_cursor(
-        test_case.final_cursor,
-        len(controller.prompt),
-    )

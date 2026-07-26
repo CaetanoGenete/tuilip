@@ -14,10 +14,11 @@ if TYPE_CHECKING:
 
 TOrNever = TypeVar("TOrNever", default=Never)
 
-type Renderable[R] = Component[R] | TextLike | AnimatedText
 
+type Renderable[R] = Component[R] | TextLike | AnimatedText
 type ComponentYieldT[R] = Renderable[R] | Loop | None
 type ComponentGen[R] = Generator[ComponentYieldT[R], int, R]
+
 
 type CompCacheChild[R] = Component[R] | Text | AnimatedText
 

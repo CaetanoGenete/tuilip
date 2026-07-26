@@ -1,21 +1,98 @@
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
+from tuilip.input import BlockingInputHandler
 from dataclasses import asdict, dataclass, field
+from collections import deque
 import os
 from pathlib import Path
 import random
 import re
-from typing import Any, Generator, Generic, Iterator, Never
+from typing import Any, Generator, Generic, Iterator, Never, cast, final, ContextManager
 from xml.etree.ElementTree import Element
 from xml.etree.ElementPath import iterfind
 
 from tuilip.components import component
 from tuilip.components.types import CompCacheChild, Component, TOrNever, ComponentGen
 from tuilip.input.keys import Key
-from tuilip.render import render_animations, build_it, resolve_indent
+from tuilip.render import BuildOutput, build_it, render_animations, resolve_indent
 from tuilip.render.anim import AnimatedText
 from tuilip.render.std import DEFAULT_THEME, apply_styles
-from tuilip.render.types import Loop
+from tuilip.render.types import Loop, RendererContext
 from tuilip.render.text import Text
+
+
+class NoMoreFramesError(Exception): ...
+
+
+@dataclass(slots=True)
+class TestFrame:
+    key: Key | None
+    rendered: str
+
+
+@final
+@dataclass
+class TesterInputHandler[T](BlockingInputHandler):
+    """Input handler for ComponentTester.
+
+    This handler inverts the typical UI flow of the _build_ waiting for input. Instead,
+    input drives the build.
+    """
+
+    render_it: Generator[tuple[BuildOutput, bool], int, T]
+    anim_frame: int = 0
+    keys: deque[Key] = field(default_factory=deque[Key])
+
+    frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
+    ret: T | None = field(default=None, init=False)
+    done: bool = field(default=False, init=False)
+
+    def flush(self) -> int:
+        """Processes stored keys.
+
+        Returns:
+            Number of builds.
+        """
+
+        nbuilds = 0
+        while self.keys:
+            key = self.keys.popleft()
+
+            try:
+                screen, poll = self.render_it.send(key)
+            except StopIteration as e:
+                self.ret = cast(T, e.value)
+                self.done = True
+                continue
+
+            nbuilds += 1
+            if not poll:
+                self.keys.append(Key.NULL)
+
+            rendered = render_animations(screen, self.anim_frame)
+            rendered = resolve_indent(rendered)
+            rendered = apply_styles(rendered, DEFAULT_THEME)
+            self.frames.append(TestFrame(key=key, rendered=rendered))
+
+        return nbuilds
+
+    def read(self, timeout: float) -> int:
+        del timeout
+        return Key.NULL
+
+    def interrupt(self) -> None:
+        self.keys.appendleft(Key.NULL)
+        self.flush()
+
+    def raw(self) -> ContextManager[None]:
+        return nullcontext()
+
+
+@dataclass(slots=True)
+class ComponentQueryResult:
+    debug_name: str
+    indent: int
+    noreturn: bool
+    rebuilt: bool
 
 
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"
@@ -33,35 +110,18 @@ def _iter_snapshot(snapshots: str) -> Iterator[str]:
     yield snapshots[last:]
 
 
-class NoMoreFramesError(Exception): ...
-
-
-@dataclass(slots=True)
-class TestFrame:
-    key: Key | None
-    rendered: str
-
-
-@dataclass(slots=True)
-class ComponentQueryResult:
-    debug_name: str
-    noreturn: bool
-    indent: int
-    rebuilt: bool
-
-
 @dataclass
 class ComponentTester(Generic[TOrNever]):
+    """Suite of testing utilities for components.
+
+    **IMPORTANT**: prefer creating with `component_tester` function!
+    """
+
     comp: Component[TOrNever]
-    anim_frame: int = 0
-    frames: list[TestFrame] = field(default_factory=list[TestFrame], init=False)
-    ret: TOrNever | None = field(default=None, init=False)
-    done: bool = field(default=False, init=False)
+    ihandler: TesterInputHandler[TOrNever]
 
     def __post_init__(self) -> None:
-        self.__render_it = build_it([self.comp])
         self.__build_idx = 0
-
         self.next(None)  # type: ignore
 
     def next(self, *keys: Key) -> None:
@@ -73,30 +133,37 @@ class ComponentTester(Generic[TOrNever]):
             NoMoreFrameError: If called after the component has returned.
         """
 
-        key_stack = list(reversed(keys))
-        while key_stack:
-            if self.done:
-                raise NoMoreFramesError()
+        self.ihandler.keys.extend(keys)
+        self.__build_idx += self.ihandler.flush()
 
-            key = key_stack.pop()
-            try:
-                screen, poll = self.__render_it.send(key)
-            except StopIteration as e:
-                self.ret = e.value
-                self.done = True
-                continue
+    @property
+    def done(self) -> bool:
+        """True when the component has returned.
 
-            self.__build_idx += 1
+        Invoking `next` after this returns `true` will raise a `NoMoreFrameError`.
 
-            if not poll:
-                key_stack.append(Key.NULL)
+        Returns:
+            A boolean value.
+        """
+        return self.ihandler.done
 
-            rendered = render_animations(screen, self.anim_frame)
-            rendered = resolve_indent(rendered)
-            rendered = apply_styles(rendered, DEFAULT_THEME)
-            self.frames.append(TestFrame(key=key, rendered=rendered))
+    @property
+    def ret(self) -> TOrNever | None:
+        """The returned value of the component, or `None`.
+
+        The `done` attribute indicates whether there is a return value or not.
+        """
+        return self.ihandler.ret
 
     def find(self, xpath: str) -> Iterator[ComponentQueryResult]:
+        """Returns all components matching the `xpath` expression.
+
+        Args:
+            xpath: XPath query string.
+
+        Yields:
+            A matching component proxy object.
+        """
         root = Element("root")
 
         stack: list[tuple[Element, CompCacheChild[Any]]] = [(root, self.comp)]
@@ -156,7 +223,7 @@ class ComponentTester(Generic[TOrNever]):
             compare: If true, compares existing frames in `out`, erring if any differ.
         """
 
-        frame_start = len(self.frames) - 1
+        frame_start = len(self.ihandler.frames) - 1
         try:
             yield
 
@@ -165,7 +232,7 @@ class ComponentTester(Generic[TOrNever]):
                     expected = f.read()
 
                 for actual, expected in zip(
-                    (x.rendered for x in self.frames[frame_start:]),
+                    (x.rendered for x in self.ihandler.frames[frame_start:]),
                     _iter_snapshot(expected),
                     strict=True,
                 ):
@@ -173,14 +240,40 @@ class ComponentTester(Generic[TOrNever]):
 
         finally:
             with open(out, "wt", encoding="utf-8") as f:
-                f.write(self.frames[0].rendered)
+                f.write(self.ihandler.frames[0].rendered)
 
-                for frame in self.frames[1:]:
+                for frame in self.ihandler.frames[1:]:
                     key = frame.key
                     assert key is not None
 
                     f.write(SNAPSHOT_FRAME_DELIM % key.name)
                     f.write(frame.rendered)
+
+
+@contextmanager
+def component_tester(
+    comp: Component[TOrNever],
+    *,
+    snapshot_path: str | Path | None = None,
+    compare: bool = False,
+) -> Generator[ComponentTester[TOrNever], None, None]:
+    assert not (compare and snapshot_path is None), (
+        "snapshot_path is required if compare=True"
+    )
+
+    render_it = build_it([comp])
+    ihandler = TesterInputHandler(render_it)
+    context = RendererContext(ihandler)
+
+    with context.context():
+        tester = ComponentTester(comp, ihandler)
+
+        with (
+            tester.record(snapshot_path, compare=compare)
+            if snapshot_path is not None
+            else nullcontext()
+        ):
+            yield tester
 
 
 @dataclass(slots=True)

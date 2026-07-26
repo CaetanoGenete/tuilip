@@ -5,7 +5,7 @@ import pytest
 from more_itertools import one
 
 from tuilip.input.keys import Key
-from tuilip.tester import ComponentTester
+from tuilip.tester import component_tester
 from tuilip.components import SELECT_MAX_BULLETS, SelectController, select, selectn
 from tuilip.components.types import Component
 from tests.utils import identitycomp
@@ -19,14 +19,12 @@ def test_navigate(snapshot_path: Path, nitems: int) -> None:
     2. Test navigation from 1,n,n-1,...1 wraps
     """
 
-    tester = ComponentTester(
-        select(
-            [f"item - {i}" for i in range(nitems)],
-            items_per_page=10,
-        ),
+    comp = select(
+        [f"item - {i}" for i in range(nitems)],
+        items_per_page=10,
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         for _ in range(nitems):
             tester.next(Key.DOWN)
 
@@ -37,11 +35,9 @@ def test_navigate(snapshot_path: Path, nitems: int) -> None:
 def test_no_rebuild(snapshot_path: Path) -> None:
     """Tests select doesn't rebuild if pressed key not in commands."""
 
-    tester = ComponentTester(
-        select([f"item - {i}" for i in range(4)]),
-    )
+    comp = select([f"item - {i}" for i in range(4)])
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         tester.next(Key.L)
         assert not one(tester.find("./select")).rebuilt
 
@@ -61,15 +57,13 @@ def test_controller(snapshot_path: Path) -> None:
     items_per_page = 4
 
     controller = SelectController(1)
-    tester = ComponentTester(
-        select(
-            [f"item - {i}" for i in range(5)],
-            controller=controller,
-            items_per_page=items_per_page,
-        ),
+    comp = select(
+        [f"item - {i}" for i in range(5)],
+        controller=controller,
+        items_per_page=items_per_page,
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         for index in (2, 0, items_per_page):
             controller.index = index
             controller.refresh = True
@@ -111,15 +105,13 @@ def test_page_indicator(snapshot_path: Path, nitems: int) -> None:
     """
 
     controller = SelectController(0)
-    tester = ComponentTester(
-        select(
-            [f"item - {i}" for i in range(nitems)],
-            items_per_page=_TEST_PAGER_MAX_ITEMS,
-            controller=controller,
-        ),
+    comp = select(
+        [f"item - {i}" for i in range(nitems)],
+        items_per_page=_TEST_PAGER_MAX_ITEMS,
+        controller=controller,
     )
 
-    with tester.record(snapshot_path, compare=True):
+    with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         # Check at end of first page
         controller.index = min(_TEST_PAGER_MAX_ITEMS - 1, nitems - 1)
         controller.refresh = True
@@ -144,17 +136,16 @@ def test_enter_select_item(index: int) -> None:
     """Test select given index on <ENTER>."""
 
     controller = SelectController(0)
-    tester = ComponentTester(
-        select(
-            [f"item - {i}" for i in range(11)],
-            items_per_page=10,
-            controller=controller,
-        ),
+    comp = select(
+        [f"item - {i}" for i in range(11)],
+        items_per_page=10,
+        controller=controller,
     )
 
-    controller.index = index
-    tester.next(Key.NULL)
-    tester.next(Key.CR)
+    with component_tester(comp) as tester:
+        controller.index = index
+        tester.next(Key.NULL)
+        tester.next(Key.CR)
 
     assert tester.done and tester.ret == index
 
@@ -168,16 +159,15 @@ def test_command_select_item() -> None:
         controller.index = index
         return True
 
-    tester = ComponentTester(
-        select(
-            [f"item - {i}" for i in range(11)],
-            items_per_page=10,
-            commands={Key.ASTERISK: _select},
-        ),
+    comp = select(
+        [f"item - {i}" for i in range(11)],
+        items_per_page=10,
+        commands={Key.ASTERISK: _select},
     )
 
-    tester.next(Key.ASTERISK)
-    assert tester.done and tester.ret == index
+    with component_tester(comp) as tester:
+        tester.next(Key.ASTERISK)
+        assert tester.done and tester.ret == index
 
 
 # Type checks
