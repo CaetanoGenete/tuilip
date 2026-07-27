@@ -121,7 +121,7 @@ def test_controller(snapshot_path: Path) -> None:
         # Tab change should have no effect unless refresh = True
         controller.tab = 1
         tester.next(Key.NULL)
-        assert not one(tester.find("./tabview")).rebuilt
+        assert not one(tester.find("./tabview")).changed
 
         tester.next(Key.RIGHT)
 
@@ -137,12 +137,12 @@ def test_no_rebuild(snapshot_path: Path) -> None:
 
     with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         tester.next(Key.DOWN)
-        assert not one(tester.find("./tabview")).rebuilt
+        assert not one(tester.find("./tabview")).changed
 
         tester.next(Key.RIGHT)
 
         tester.next(Key.DOWN)
-        assert not one(tester.find("./tabview")).rebuilt
+        assert not one(tester.find("./tabview")).changed
 
 
 # type checks

@@ -18,9 +18,7 @@ async def identity_coro[R](
     sleep: float = 0,
     error: bool = False,
 ) -> R:
-    if sleep > 0:
-        await asyncio.sleep(sleep)
-
+    await asyncio.sleep(sleep)
     if error:
         raise _TestCoroException()
 

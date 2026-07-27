@@ -46,14 +46,9 @@ class TesterInputHandler[T](BlockingInputHandler):
     ret: T | None = field(default=None, init=False)
     done: bool = field(default=False, init=False)
 
-    def flush(self) -> int:
-        """Processes stored keys.
+    def flush(self) -> None:
+        """Processes stored keys."""
 
-        Returns:
-            Number of builds.
-        """
-
-        nbuilds = 0
         while self.keys:
             key = self.keys.popleft()
 
@@ -64,7 +59,6 @@ class TesterInputHandler[T](BlockingInputHandler):
                 self.done = True
                 continue
 
-            nbuilds += 1
             if not poll:
                 self.keys.append(Key.NULL)
 
@@ -72,8 +66,6 @@ class TesterInputHandler[T](BlockingInputHandler):
             rendered = resolve_indent(rendered)
             rendered = apply_styles(rendered, DEFAULT_THEME)
             self.frames.append(TestFrame(key=key, rendered=rendered))
-
-        return nbuilds
 
     def read(self, timeout: float) -> int:
         del timeout
@@ -92,7 +84,7 @@ class ComponentQueryResult:
     debug_name: str
     indent: int
     noreturn: bool
-    rebuilt: bool
+    changed: bool
 
 
 SNAPSHOT_FRAME_DELIM = "\n\n;;; key: %s ;;;\n\n"
@@ -121,7 +113,7 @@ class ComponentTester(Generic[TOrNever]):
     ihandler: TesterInputHandler[TOrNever]
 
     def __post_init__(self) -> None:
-        self.__build_idx = 0
+        self.__prev_ids: dict[int, int] = {}
         self.next(None)  # type: ignore
 
     def next(self, *keys: Key) -> None:
@@ -133,8 +125,16 @@ class ComponentTester(Generic[TOrNever]):
             NoMoreFrameError: If called after the component has returned.
         """
 
+        stack = [self.comp]
+        while stack:
+            curr = stack.pop()
+            self.__prev_ids[id(curr)] = id(curr.cache.children)
+            stack.extend(
+                [child for child in curr.cache.children if isinstance(child, Component)]
+            )
+
         self.ihandler.keys.extend(keys)
-        self.__build_idx += self.ihandler.flush()
+        self.ihandler.flush()
 
     @property
     def done(self) -> bool:
@@ -193,7 +193,9 @@ class ComponentTester(Generic[TOrNever]):
                 attrib={
                     "noreturn": str(curr.noreturn).lower(),
                     "indent": str(curr.indent).lower(),
-                    "rebuilt": str(self.__build_idx == curr.cache.build_index),
+                    "changed": str(
+                        self.__prev_ids.get(id(curr)) != id(curr.cache.children)
+                    ).lower(),
                 },
             )
             parent.append(last)
@@ -210,7 +212,7 @@ class ComponentTester(Generic[TOrNever]):
                 debug_name=child.tag,
                 indent=int(child.attrib["indent"]),
                 noreturn=child.attrib["noreturn"] == "true",
-                rebuilt=child.attrib["rebuilt"] == "true",
+                changed=child.attrib["changed"] == "true",
             )
 
     @contextmanager

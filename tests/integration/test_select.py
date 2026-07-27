@@ -1,6 +1,6 @@
 from pathlib import Path
-from typing import Any, assert_type
 import pytest
+from typing import Any, assert_type
 
 from more_itertools import one
 
@@ -33,18 +33,18 @@ def test_navigate(snapshot_path: Path, nitems: int) -> None:
 
 
 def test_no_rebuild(snapshot_path: Path) -> None:
-    """Tests select doesn't rebuild if pressed key not in commands."""
+    """Tests select doesn't rebuild if pressed key is not in commands."""
 
     comp = select([f"item - {i}" for i in range(4)])
 
     with component_tester(comp, snapshot_path=snapshot_path, compare=True) as tester:
         tester.next(Key.L)
-        assert not one(tester.find("./select")).rebuilt
+        assert not one(tester.find("./select")).changed
 
         tester.next(Key.DOWN)
 
         tester.next(Key.U)
-        assert not one(tester.find("./select")).rebuilt
+        assert not one(tester.find("./select")).changed
 
 
 def test_controller(snapshot_path: Path) -> None:
@@ -72,7 +72,7 @@ def test_controller(snapshot_path: Path) -> None:
         # Index change should have no effect unless refresh = True
         controller.index = 3
         tester.next(Key.NULL)
-        assert not one(tester.find("./select")).rebuilt
+        assert not one(tester.find("./select")).changed
 
         tester.next(Key.UP)
 

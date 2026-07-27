@@ -53,9 +53,3 @@ loading_spinner_1 = partial(
     frames=["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"],
     repeat=True,
 )
-
-loading_spinner_2 = partial(
-    animframes,
-    frames=["|", "/", "-", "\\"],
-    repeat=True,
-)
