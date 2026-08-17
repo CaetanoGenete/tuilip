@@ -9,15 +9,17 @@ authors = [
 requires-python = ">=3.12"
 dependencies = [
     "more-itertools>=11.1.0",
-    "rich>=15.0.0",
 ]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.uv]
-package = true
+[tool.uv.workspace]
+members = ["packages/*"]
+
+[tool.uv.sources.tuilip]
+workspace = true
 
 [dependency-groups]
 dev = [
@@ -39,5 +41,4 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-
 ignore = ["E741"]

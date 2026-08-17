@@ -168,6 +168,31 @@ def padding[T: Renderable[Any]](comp: T, indent: int) -> T:
     return result()  # type: ignore
 
 
+@overload
+def onkey[T](commands: dict[int, Callable[[], None]]) -> Component[Never]: ...
+
+
+@overload
+def onkey[T](commands: dict[int, Callable[[], T]]) -> Component[T]: ...
+
+
+@component
+def onkey[T](commands: dict[int, Callable[[], T]]) -> ComponentGen[T]:
+    """Executes `commands[key]` action on pressing `key`.
+    
+    Component returns any non `None` returned value from a triggered action. 
+
+    Args:
+        commands: Mapping of key -> action.
+    """
+    key = yield Loop.POLLINPUT
+    while True:
+        if key in commands and (result := commands[key]()) is not None:
+            return result
+
+        key = yield Loop.NOCHANGE
+
+
 type Tab[R] = tuple[TextLike, Renderable[R]]
 
 
@@ -211,7 +236,7 @@ def tabview_compact(
     tabs_per_page: int = DEFAULT_TABS_PER_PAGE,
     sep: TextLike = DEFAULT_TABVIEW_SEP,
 ) -> TabviewFormatter:
-    """Shows `tabs_per_page` tab titles, separated by spaces
+    """Shows `tabs_per_page` tab titles, separated by spaces.
 
     Args:
         tabs_per_page: Number of tab titles to show per page.
@@ -481,7 +506,7 @@ class SelectController:
             self.refresh = True
 
     def select(self) -> bool:
-        """Select current element pointed at by cursor."""
+        """Select current element pointed at by the cursor."""
 
         return True
 
@@ -512,7 +537,10 @@ def select(
     controller: SelectController | None = None,
     commands: SelectCommandsMap[TOrNever] | None = None,
 ) -> ComponentGen2[TOrNever, int]:
-    """Selects between 'comps'. Analogous to html <select>.
+    """Prompts selection between 'comps'. 
+
+    Analogous to html <select>. Returns the index of the currently hovered item upon
+    selection.
 
     Args:
         values: Components to select between.
@@ -740,7 +768,9 @@ def prompt(
     controller: PromptController | None = None,
     commands: PromptCommandsMap = DEFAULT_PROMPT_COMMANDS,
 ) -> ComponentGen[str]:
-    """Text prompt.
+    """Prompts for text input.
+
+    Returns the buffered prompt upon selection.
 
     Args:
         controller: Controller for this prompt component.
@@ -845,7 +875,7 @@ def futurecomp(
 
     The return value of this component can be changed by the `behaviour` parameter:
     - RETURN_NEVER: marks this component as `noreturn`.
-    - RETURN_RESULT: Returns the result of the future or an Exception.
+    - RETURN_RESULT: Returns the result of the future or an Exception upon completion.
 
     Supports both concurrent Futures and asyncio Tasks, if a coroutine is provided, it
     is automatically wrapped in a Task.

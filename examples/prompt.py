@@ -1,7 +1,7 @@
 from typing import assert_type
 
 from tuilip.components import prompt
-from tuilip.render.rich import render
+from tuilip.render.std import render
 from tuilip.render.text import Text
 
 try:

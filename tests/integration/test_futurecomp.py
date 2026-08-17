@@ -26,12 +26,15 @@ async def identity_coro[R](
 
 
 async def poll(
-    init_wait: float, cond: Callable[[], bool], max_wait: float, interval: float = 0.02
+    init_wait: float,
+    cond: Callable[[], bool],
+    max_wait: float,
+    interval: float = 0.02,
 ) -> None:
     start = time.monotonic()
     await asyncio.sleep(init_wait)
 
-    while cond() == False and (time.monotonic() - start) < max_wait:
+    while not cond() and (time.monotonic() - start) < max_wait:
         await asyncio.sleep(interval)
 
 

@@ -1,5 +1,5 @@
-.venv:
-	uv sync
+.venv: pyproject.toml ./packages/tuilip_cli/pyproject.toml
+	uv sync --all-packages
 
 .PHONY: type-check
 develop: .venv

@@ -1,0 +1,13 @@
+[project]
+name = "tuilip_cli"
+version = "0.1.0"
+description = "CLI interface for tuilip"
+requires-python = ">=3.12"
+dependencies = [ "tuilip" ]
+
+[project.scripts]
+tuilip = "tuilip_cli.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
